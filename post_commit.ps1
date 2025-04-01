@@ -3,7 +3,6 @@ $gitExe = "C:\Program Files\Git\bin\git.exe"   # Git 실행 파일 경로
 $vivadoPath = "C:\Xilinx\Vivado\2020.2\bin\vivado.bat"  # Vivado 실행 경로
 $vivadoWorkspace = "$env:USERPROFILE\Desktop\workspace"
 $gitWorkspace = "$repoPath\workspace"
-
 # 오늘 날짜 가져오기 (yyyy-MM-dd 형식)
 $today = Get-Date -Format "yyyy-MM-dd"
 
