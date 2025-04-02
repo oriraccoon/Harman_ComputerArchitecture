@@ -10,8 +10,25 @@ module top_counter_up_down (
 );
     wire [13:0] fndData;
     wire [ 3:0] dot_data;
-    wire [7:0] buff_data;
+    reg [7:0] buff_data, tick_data;
     wire [2:0] command;
+
+    wire [7:0] rx_data;
+    wire rx_done, tx_done;
+    
+    always @(posedge clk or posedge reset) begin
+        if (reset) begin
+            buff_data <= 8'b0;
+            tick_data <= 0;
+        end else begin
+            if (rx_done) begin
+                buff_data <= rx_data;
+                tick_data <= rx_data;
+            end else begin
+                tick_data <= 0;
+            end
+        end
+    end
 
     counter_up_down U_Counter (
         .clk(clk),
@@ -42,15 +59,21 @@ module top_counter_up_down (
 
     uart U_uart(
         .clk(clk),
-        .rst(rst),
-        .rx(rx),
+        .rst(reset),
+
+        .btn_start(rx_done),
+        .tx_data(buff_data),
+        .tx_done(tx_done),
         .tx(tx),
-        .buff_data(buff_data)
+
+        .rx(rx),
+        .rx_done(rx_done),
+        .rx_data(rx_data)
     );
 
     command U_Command (
         .clk(clk),
-        .data(buff_data),
+        .data(tick_data),
         .command(command)
     );
 
@@ -112,6 +135,14 @@ module counter (
     parameter IDLE = 0, PLUS_MOD = 1, MINUS_MOD = 2;
 
     reg [$clog2(10000)-1:0] counter;
+    reg r_mod;
+
+    initial r_mod = 0;
+
+    always @(*) begin
+        if(mode == PLUS_MOD) r_mod = 0;
+        else if(mode == MINUS_MOD) r_mod = 1;
+    end
 
     assign count = counter;
 
@@ -122,7 +153,7 @@ module counter (
             case ({clear_signal, run_stop_signal})
                 2'b10, 2'b11: counter <= 0;
                 2'b01: begin
-                        if (mode == PLUS_MOD) begin
+                        if (~r_mod) begin
                             if (tick) begin
                                 if (counter == 9999) begin
                                     counter <= 0;
@@ -130,7 +161,7 @@ module counter (
                                     counter <= counter + 1;
                                 end
                             end
-                        end else if(mode == MINUS_MOD) begin
+                        end else if(r_mod) begin
                             if (tick) begin
                                 if (counter == 0) begin
                                     counter <= 9999;
@@ -183,7 +214,7 @@ module switch_ctrl (
     output reg clear_signal
 );
     parameter IDLE = 0, RUN = 3, CLEAR = 4;
-    reg [1:0] state, prev;
+    reg [2:0] state, prev;
 
     initial begin
         state <= IDLE;
@@ -192,7 +223,7 @@ module switch_ctrl (
     always @(posedge clk or posedge rst) begin
         if (rst) begin
             state <= IDLE;
-            prev <= state;
+            prev <= 0;
         end
         else begin
             case (state)
@@ -214,6 +245,7 @@ module switch_ctrl (
                 end
             endcase
         end
+        prev <= state;
     end
 
 endmodule
@@ -229,14 +261,14 @@ module command (
     output reg [2:0] command
 );
     
-    parameter IDLE = 0, PLUS_MOD = 1, MINUS_MOD = 2, RUN_STOP_MOD = 3, CLEAR = 4;
+    parameter IDLE = 0, PLUS_MOD = 1, MINUS_MOD = 2, RUN_MOD = 3, CLEAR = 4;
 
     always @(posedge clk) begin
         command <= IDLE;
         case (data)
             "p", "P" : command <= PLUS_MOD;
             "m", "M" : command <= MINUS_MOD; 
-            "r", "R" : command <= RUN_STOP_MOD;
+            "r", "R" : command <= RUN_MOD;
             "c", "C" : command <= CLEAR;
             default : command <= IDLE;
         endcase

@@ -10,7 +10,7 @@ module tb_uart ();
 
     top_counter_up_down dut(
         .clk(clk),
-        .rst(rst),
+        .reset(rst),
         .rx(rx),
         .tx(tx)
     );
@@ -31,17 +31,6 @@ module tb_uart ();
                 #2
         rx = 0; #869; send_bit("m"); rx = 1; #2604;
                 #2
-        rx = 0; #869; send_bit("m"); rx = 1; #2604;
-                #2
-        rx = 0; #869; send_bit("m"); rx = 1; #2604;
-                #200
-        rx = 0; #869; send_bit("t"); rx = 1; #2604;
-        #2000000
-        rx = 0; #869; send_bit("m"); rx = 1; #2604;
-                #2
-        rx = 0; #869; send_bit("m"); rx = 1; #2604;
-                #2
-        rx = 0; #869; send_bit("h"); rx = 1; #2604;
         #10000;
         $finish;
     end
