@@ -6,7 +6,36 @@ module uart (
 
     output tx
 );
-    
+
+    wire [7:0] data;
+
+    baud_tick_gen u_baud_tick_gen (
+        .clk(clk),
+        .rst(rst),
+        .br_tick(br_tick)
+    );
+
+    uart_tx u_uart_tx (
+        .clk(clk),
+        .rst(rst),
+        .data(data),
+        .start_trig(start_trig),
+        .tick(br_tick),
+        .tx_busy(tx_busy),
+        .tx_done(tx_done),
+        .tx(tx)
+    );
+
+    uart_rx u_uart_rx (
+        .clk(clk),
+        .rst(rst),
+        .start_trig(~rx),
+        .rx(rx),
+        .tick(br_tick),
+        .data(data),
+        .rx_done(rx_done)
+    );
+
 endmodule
 
 
@@ -132,6 +161,102 @@ module uart_tx (
                 if (tick) begin
                     if (br_tick_counter_reg == 15) begin
                         tx_done_next = 1;
+                        state_next = IDLE;
+                    end
+                    else begin
+                        br_tick_counter_next = br_tick_counter_reg + 1;
+                    end
+                end
+            end 
+        endcase
+    end
+
+endmodule
+
+
+module uart_rx (
+    input clk,
+    input rst,
+    input start_trig,
+    input rx,
+    input tick,
+    output reg [7:0] data,
+    output reg rx_done
+);
+
+    localparam IDLE = 0, START = 1, DATA = 2, STOP = 3;
+
+    reg [1:0] state, state_next;
+    reg [7:0] temp_data_reg, temp_data_next;
+    reg [2:0] bit_count_reg, bit_count_next;
+    reg [4:0] br_tick_counter_reg, br_tick_counter_next;
+    reg rx_done_reg, rx_done_next;
+
+    
+
+    always @(posedge clk, posedge rst) begin
+        if(rst) begin
+            {state, temp_data_reg, bit_count_reg, br_tick_counter_reg, 
+            rx_done_reg,rx_done} <=
+            0;
+        end
+        else begin
+            {state, temp_data_reg, bit_count_reg, br_tick_counter_reg, 
+            rx_done_reg} <=
+            {state_next, temp_data_next, bit_count_next, br_tick_counter_next, 
+            rx_done_next};
+
+            {rx_done, data} <=
+            {rx_done_reg, temp_data_next};
+
+        end
+    end
+
+    always @(*) begin
+        state_next = state;
+        temp_data_next = temp_data_reg;
+        bit_count_next = bit_count_reg;
+        br_tick_counter_next = br_tick_counter_reg;
+        rx_done_next <= rx_done_reg;
+        case (state)
+            IDLE: begin
+                bit_count_next = 0;
+                br_tick_counter_next = 0;
+                rx_done_next = 0;
+                if(start_trig) begin
+                    state_next = START;
+                end
+            end
+            START: begin
+                if (tick) begin
+                    if (br_tick_counter_reg == 7) begin
+                        br_tick_counter_next = 0;
+                        state_next = DATA;
+                    end
+                    else begin
+                        br_tick_counter_next = br_tick_counter_reg + 1;
+                    end
+                end
+            end
+            DATA: begin
+                if (tick) begin
+                    if (br_tick_counter_reg == 15) begin
+                        temp_data_next[7] = rx;
+                        br_tick_counter_next = 0;
+                        if (bit_count_reg == 7) begin
+                            state_next = STOP;
+                        end
+                        else begin
+                            bit_count_next = bit_count_reg + 1;
+                            temp_data_next = {1'b0, temp_data_next[7:1]};
+                        end
+                    end
+                end
+            end
+            STOP: begin
+                if (tick) begin
+                    if (br_tick_counter_reg == 23) begin
+                        rx_done_next = 1;
                         state_next = IDLE;
                     end
                     else begin

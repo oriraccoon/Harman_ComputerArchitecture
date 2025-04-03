@@ -20,7 +20,6 @@ $modifiedProjects = Get-ChildItem -Path $vivadoWorkspace -Directory | Where-Obje
 foreach ($project in $modifiedProjects) {
     $projectName = $project.Name
     $srcPath = "$vivadoWorkspace\$project\$project.srcs"
-    $destPath = "$gitWorkspace\$project.srcs"
 
     if (Test-Path $srcPath) {
         Write-Host "Detected Changed Project: $projectName"
