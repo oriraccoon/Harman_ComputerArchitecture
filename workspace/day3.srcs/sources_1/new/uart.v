@@ -241,14 +241,13 @@ module uart_rx (
             DATA: begin
                 if (tick) begin
                     if (br_tick_counter_reg == 15) begin
-                        temp_data_next[7] = rx;
+                        temp_data_next = temp_data_reg << 1 | rx;
                         br_tick_counter_next = 0;
                         if (bit_count_reg == 7) begin
                             state_next = STOP;
                         end
                         else begin
                             bit_count_next = bit_count_reg + 1;
-                            temp_data_next = {1'b0, temp_data_next[7:1]};
                         end
                     end
                 end
