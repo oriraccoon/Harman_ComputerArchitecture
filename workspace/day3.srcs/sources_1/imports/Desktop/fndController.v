@@ -2,7 +2,7 @@
 
 module fndController (
     input         clk,
-    input         rst,
+    input         reset,
     input  [13:0] fndData,
     input  [ 3:0] fndDot,
     output [ 3:0] fndCom,
@@ -18,13 +18,13 @@ module fndController (
 
     clk_div_1khz U_Clk_Div_1Khz (
         .clk  (clk),
-        .rst(rst),
+        .reset(reset),
         .tick (tick)
     );
 
     counter_2bit U_Conter_2big (
         .clk  (clk),
-        .rst(rst),
+        .reset(reset),
         .tick (tick),
         .count(digit_sel)
     );
@@ -82,13 +82,13 @@ endmodule
 
 module clk_div_1khz (
     input clk,
-    input rst,
+    input reset,
     output reg tick
 );
     reg [$clog2(100_000)-1 : 0] div_counter;
 
-    always @(posedge clk, posedge rst) begin
-        if (rst) begin
+    always @(posedge clk, posedge reset) begin
+        if (reset) begin
             div_counter <= 0;
             tick <= 1'b0;
         end else begin
@@ -105,12 +105,12 @@ endmodule
 
 module counter_2bit (
     input            clk,
-    input            rst,
+    input            reset,
     input            tick,
     output reg [1:0] count
 );
-    always @(posedge clk, posedge rst) begin
-        if (rst) begin
+    always @(posedge clk, posedge reset) begin
+        if (reset) begin
             count <= 0;
         end else begin
             if (tick) begin

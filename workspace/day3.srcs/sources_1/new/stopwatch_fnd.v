@@ -1,9 +1,11 @@
 `timescale 1ns / 1ps
 
-module fndController (
+module stopwatch_fnd (
     input         clk,
     input         rst,
-    input  [13:0] fndData,
+    input [$clog2(100):0] ms_count,
+    input [$clog2(60):0] s_count,
+    input [$clog2(60):0] m_count,
     input  [ 3:0] fndDot,
     output [ 3:0] fndCom,
     output [ 7:0] fndFont
@@ -16,33 +18,35 @@ module fndController (
 
     assign fndFont = {fndDp, fndSegData[6:0]};
 
-    clk_div_1khz U_Clk_Div_1Khz (
+    sclk_div_1khz U_Clk_Div_1Khz (
         .clk  (clk),
         .rst(rst),
         .tick (tick)
     );
 
-    counter_2bit U_Conter_2big (
+    scounter_2bit U_Conter_2big (
         .clk  (clk),
         .rst(rst),
         .tick (tick),
         .count(digit_sel)
     );
 
-    decoder_2x4 U_Dec_2x4 (
+    sdecoder_2x4 U_Dec_2x4 (
         .x(digit_sel),
         .y(fndCom)
     );
 
-    digitSplitter U_Digit_Splitter (
-        .fndData(fndData),
+    sdigitSplitter U_Digit_Splitter (
+        .ms_count   (ms_count),
+        .s_count   (s_count),
+        .m_count   (m_count),
         .digit_1(digit_1),
         .digit_10(digit_10),
         .digit_100(digit_100),
         .digit_1000(digit_1000)
     );
 
-    mux_4x1 U_Mux_4x1 (
+    smux_4x1 U_Mux_4x1 (
         .sel(digit_sel),
         .x0 (digit_1),
         .x1 (digit_10),
@@ -51,19 +55,19 @@ module fndController (
         .y  (digit)
     );
 
-    BCDtoSEG_decoder U_BCDtoSEG (
+    sBCDtoSEG_decoder U_BCDtoSEG (
         .bcd(digit),
         .seg(fndSegData)
     );
 
-    mux_4x1_1bit U_Mux_4x1_1bit (
+    smux_4x1_1bit U_Mux_4x1_1bit (
         .sel(digit_sel),
         .x  (fndDot),
         .y  (fndDp)
     );
 endmodule
 
-module mux_4x1_1bit (
+module smux_4x1_1bit (
     input      [1:0] sel,
     input      [3:0] x,
     output reg       y
@@ -80,7 +84,7 @@ module mux_4x1_1bit (
     end
 endmodule
 
-module clk_div_1khz (
+module sclk_div_1khz (
     input clk,
     input rst,
     output reg tick
@@ -103,7 +107,7 @@ module clk_div_1khz (
     end
 endmodule
 
-module counter_2bit (
+module scounter_2bit (
     input            clk,
     input            rst,
     input            tick,
@@ -120,7 +124,7 @@ module counter_2bit (
     end
 endmodule
 
-module decoder_2x4 (
+module sdecoder_2x4 (
     input      [1:0] x,
     output reg [3:0] y
 );
@@ -135,20 +139,22 @@ module decoder_2x4 (
     end
 endmodule
 
-module digitSplitter (
-    input  [13:0] fndData,
+module sdigitSplitter (
+    input [$clog2(100):0] ms_count,
+    input [$clog2(60):0] s_count,
+    input [$clog2(60):0] m_count,
     output [ 3:0] digit_1,
     output [ 3:0] digit_10,
     output [ 3:0] digit_100,
     output [ 3:0] digit_1000
 );
-    assign digit_1    = fndData % 10;
-    assign digit_10   = fndData / 10 % 10;
-    assign digit_100  = fndData / 100 % 10;
-    assign digit_1000 = fndData / 1000 % 10;
+    assign digit_1    = ms_count / 10 % 10;
+    assign digit_10   = s_count % 10;
+    assign digit_100  = s_count / 10 % 10;
+    assign digit_1000 = m_count % 10;
 endmodule
 
-module mux_4x1 (
+module smux_4x1 (
     input      [1:0] sel,
     input      [3:0] x0,
     input      [3:0] x1,
@@ -167,7 +173,7 @@ module mux_4x1 (
     end
 endmodule
 
-module BCDtoSEG_decoder (
+module sBCDtoSEG_decoder (
     input      [3:0] bcd,
     output reg [7:0] seg
 );
