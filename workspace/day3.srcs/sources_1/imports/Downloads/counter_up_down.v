@@ -3,40 +3,36 @@
 module top_counter_up_down (
     input        clk,
     input        rst,
-    input        sw_mode,
-    input        sw_run_stop,
-    input        sw_clear,
+    input        read_signal,
+    input  [7:0] uart_data,
     output [3:0] fndCom,
     output [7:0] fndFont
-);  
+);
     wire [13:0] fndData;
     wire [ 3:0] fndDot;
-    wire en, clear, mode;
+    wire en, clear;
 
     control_unit U_ControlUnit (
-        .clk        (clk),
-        .rst      (rst),
-        .sw_mode    (sw_mode),
-        .sw_run_stop(sw_run_stop),
-        .sw_clear   (sw_clear),
-        .en         (en),
-        .clear      (clear),
-        .mode       (mode)
+        .clk  (clk),
+        .rst  (rst),
+        .data (uart_data),
+        .en   (en),
+        .clear(clear)
     );
 
     counter_up_down U_Counter (
         .clk     (clk),
-        .rst   (rst),
+        .rst     (rst),
         .en      (en),
         .clear   (clear),
-        .mode    (mode),
+        .data    (uart_data),
         .count   (fndData),
         .dot_data(fndDot)
     );
 
     fndController U_FndController (
         .clk    (clk),
-        .rst  (rst),
+        .rst    (rst),
         .fndData(fndData),
         .fndDot (fndDot),
         .fndCom (fndCom),
@@ -45,23 +41,22 @@ module top_counter_up_down (
 endmodule
 
 module control_unit (
-    input      clk,
-    input      rst,
-    input      sw_mode,
-    input      sw_run_stop,
-    input      sw_clear,
-    output reg en,
-    output reg clear,
-    output reg mode
+    input            clk,
+    input            rst,
+    input      [7:0] data,
+    output reg       en,
+    output reg       clear
 );
     localparam STOP = 0, RUN = 1, CLEAR = 2;
-    reg [1:0] state, state_next;
+    reg [1:0] state, state_next, prev;
 
     always @(posedge clk, posedge rst) begin
         if (rst) begin
             state <= STOP;
+            prev <= STOP;
         end else begin
             state <= state_next;
+            prev <= state;
         end
     end
 
@@ -69,23 +64,21 @@ module control_unit (
         state_next = state;
         en         = 1'b0;
         clear      = 1'b0;
-        mode       = sw_mode;
         case (state)
             STOP: begin
                 en = 1'b0;
                 clear = 1'b0;
-                if (sw_run_stop) state_next = RUN;
-                else if (sw_clear) state_next = CLEAR;
+                if (data == "r" | "R") state_next = RUN;
+                else if (data == "c" | "C") state_next = CLEAR;
             end
             RUN: begin
                 en = 1'b1;
                 clear = 1'b0;
-                if (sw_run_stop == 1'b0) state_next = STOP;
+                if (data == "r" | "R") state_next = STOP;
             end
             CLEAR: begin
-                en = 1'b0;
                 clear = 1'b1;
-                if (sw_clear == 1'b0) state_next = STOP;
+                state_next = prev;
             end
         endcase
     end
@@ -141,7 +134,7 @@ module counter (
     input         clk,
     input         rst,
     input         tick,
-    input         mode,
+    input  [ 7:0] data,
     input         en,
     input         clear,
     output [13:0] count
@@ -158,7 +151,7 @@ module counter (
                 counter <= 0;
             end else begin
                 if (en) begin
-                    if (mode == 1'b0) begin
+                    if (data == "p" | "P") begin
                         if (tick) begin
                             if (counter == 9999) begin
                                 counter <= 0;
@@ -166,7 +159,7 @@ module counter (
                                 counter <= counter + 1;
                             end
                         end
-                    end else begin
+                    end else if (data == "m" | "M") begin
                         if (tick) begin
                             if (counter == 0) begin
                                 counter <= 9999;

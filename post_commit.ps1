@@ -13,9 +13,9 @@ Start-Process -FilePath $vivadoPath -NoNewWindow -Wait
 Write-Host "Vivado Closed. Checking for modified projects..."
 
 # 수정된 날짜가 오늘인 폴더 찾기
-$modifiedProjects = Get-ChildItem -Path $vivadoWorkspace -Directory  # | Where-Object {
-#     $_.LastWriteTime.Date -eq (Get-Date $today).Date
-# }
+$modifiedProjects = Get-ChildItem -Path $vivadoWorkspace -Directory | Where-Object {
+    $_.LastWriteTime.Date -eq (Get-Date $today).Date
+}
 
 foreach ($project in $modifiedProjects) {
     $projectName = $project.Name

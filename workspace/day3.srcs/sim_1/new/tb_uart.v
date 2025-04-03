@@ -12,7 +12,7 @@ reg rx;
         .rx(rx)
     );
 
-always #5 clk = ~clk;
+always #1 clk = ~clk;
 
 initial begin
     clk = 0;

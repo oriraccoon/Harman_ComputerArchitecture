@@ -3,11 +3,10 @@ module uart (
     input rst,
     input rx,
 
-
-    output tx
+    output tx,
+    output rx_done,
+    output [7:0] data
 );
-
-    wire [7:0] data;
 
     baud_tick_gen u_baud_tick_gen (
         .clk(clk),
@@ -19,7 +18,7 @@ module uart (
         .clk(clk),
         .rst(rst),
         .data(data),
-        .start_trig(start_trig),
+        .start_trig(rx_done),
         .tick(br_tick),
         .tx_busy(tx_busy),
         .tx_done(tx_done),
@@ -154,6 +153,9 @@ module uart_tx (
                             temp_data_next = temp_data_reg >> 1;
                         end
                     end
+                    else begin
+                        br_tick_counter_next = br_tick_counter_reg + 1;
+                    end
                 end
             end
             STOP: begin
@@ -197,7 +199,7 @@ module uart_rx (
     always @(posedge clk, posedge rst) begin
         if(rst) begin
             {state, temp_data_reg, bit_count_reg, br_tick_counter_reg, 
-            rx_done_reg,rx_done} <=
+            rx_done_reg, rx_done} <=
             0;
         end
         else begin
@@ -217,7 +219,7 @@ module uart_rx (
         temp_data_next = temp_data_reg;
         bit_count_next = bit_count_reg;
         br_tick_counter_next = br_tick_counter_reg;
-        rx_done_next <= rx_done_reg;
+        rx_done_next = rx_done_reg;
         case (state)
             IDLE: begin
                 bit_count_next = 0;
@@ -239,16 +241,20 @@ module uart_rx (
                 end
             end
             DATA: begin
+                temp_data_next[7] = rx;
                 if (tick) begin
                     if (br_tick_counter_reg == 15) begin
-                        temp_data_next = temp_data_reg << 1 | rx;
                         br_tick_counter_next = 0;
                         if (bit_count_reg == 7) begin
                             state_next = STOP;
                         end
                         else begin
                             bit_count_next = bit_count_reg + 1;
+                            temp_data_next = temp_data_next >> 1;
                         end
+                    end
+                    else begin
+                        br_tick_counter_next = br_tick_counter_reg + 1;
                     end
                 end
             end
