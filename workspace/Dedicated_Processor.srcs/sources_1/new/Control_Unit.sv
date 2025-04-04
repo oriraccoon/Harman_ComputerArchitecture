@@ -34,7 +34,7 @@ module Control_Unit(
                 asel = 0;
                 aen = 0;
                 outbuf = 0;
-                if(altb) next = COMPARE;
+                if(altb) next = OUTVAL;
                 else next = HELT;
             end
             OUTVAL: begin
