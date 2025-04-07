@@ -20,10 +20,19 @@ $modifiedProjects = Get-ChildItem -Path $vivadoWorkspace -Directory | Where-Obje
 foreach ($project in $modifiedProjects) {
     $projectName = $project.Name
     $srcPath = "$vivadoWorkspace\$project\$project.srcs"
+    $dstPath = "$gitWorkspace\$projectName\$projectName.srcs"
 
     if (Test-Path $srcPath) {
         Write-Host "Detected Changed Project: $projectName"
-        Copy-Item -Path $srcPath -Destination $gitWorkspace -Recurse -Force
+
+        # 기존에 대상 폴더가 있다면 삭제 (완전한 덮어쓰기를 위해)
+        if (Test-Path $dstPath) {
+            Write-Host "Deleting old version of: $dstPath"
+            Remove-Item -Path $dstPath -Recurse -Force
+        }
+
+        # 새로 복사
+        Copy-Item -Path $srcPath -Destination $dstPath -Recurse -Force
     }
 }
 
