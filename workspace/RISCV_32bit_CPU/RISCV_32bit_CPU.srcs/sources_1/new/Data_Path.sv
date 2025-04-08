@@ -160,7 +160,7 @@ module alu (
             2:       outport = a & b;  // AND
             3:       outport = a | b;  // OR
             4:       outport = a ^ b;  // XOR
-            5:       outport = (a < b) ? 32'd1 : 32'd0;  // SLT
+            5:       outport = ($signed(a) < $signed(b)) ? 32'd1 : 32'd0;  // SLT
             6:       outport = ($unsigned(a) < $unsigned(b)) ? 32'd1 : 32'd0;  // SLTU
             7:       outport = a << b;  // SLL
             8:       outport = a >> b;  // SRL
