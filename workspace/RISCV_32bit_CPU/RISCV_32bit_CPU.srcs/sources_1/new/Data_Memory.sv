@@ -10,7 +10,7 @@ module Data_Memory (
     logic [31:0] mem [0:9];
     initial begin
         for (int i = 0; i < 10; i++) begin
-            mem[i] = 1 + i;
+            mem[i] = 101652 + i;
         end
     end
 

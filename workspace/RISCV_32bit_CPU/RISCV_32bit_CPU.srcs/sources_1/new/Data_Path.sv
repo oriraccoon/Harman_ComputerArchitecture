@@ -7,8 +7,9 @@ module DataPath (
     input logic [31:0] instr_code,
     input logic        regFileWe,
     input logic [ 3:0] alucode,
-    input logic        aluSrcMuxSel_rs1,
-    input logic        aluSrcMuxSel_rs2,
+    input logic [ 2:0] Lcode,
+    input logic        wdSrcMuxSel,
+    input logic        aluSrcMuxSel,
     input logic [31:0] rData,
 
     output logic [31:0] instr_mem_addr,
@@ -22,13 +23,14 @@ module DataPath (
 
     logic [31:0] ReadData1, ReadData2;  // Register_File
     logic [31:0] pc_in, pc_out;  // Program_Counter
-    logic [31:0] immExt, aluSrcMuxOut_rs1, aluSrcMuxOut_rs2;  // Mux
+    logic [31:0] immExt, wdSrcMuxOut, aluSrcMuxOut;  // Mux
     logic [31:0] aluResult;  // ALU
+    logic [31:0] Lmux_data, Smux_data;  // MUX
 
 
     assign instr_mem_addr = pc_out;
     assign dataAddr = aluResult;
-    assign dataWData = ReadData2;
+    assign dataWData = Smux_data;
 
     //-------------------------------------------------------------------------------
     //-------------------------------------------------------------------------------
@@ -47,7 +49,7 @@ module DataPath (
         .readAddr2(instr_code[24:20]),
         .writeAddr(instr_code[11:7]),
         .writeEn(regFileWe),
-        .wData(aluResult),
+        .wData(wdSrcMuxOut),
         .rData1(ReadData1),
         .rData2(ReadData2)
     );
@@ -56,18 +58,30 @@ module DataPath (
     //-------------------------------------------------------------------------------
     //-------------------------------------------------------------------------------
 
-    mux2x1 U_ALUsrcMux_rs1 (
-        .sel(aluSrcMuxSel_rs1),
-        .x0 (ReadData1),
-        .x1 (rData),
-        .y  (aluSrcMuxOut_rs1)
+    code_analysis U_Lcode_analysis (
+        .Lcode(Lcode),
+        .rdata(rData),
+        .data (Lmux_data)
     );
 
-    mux2x1 U_ALUsrcMux_rs2 (
-        .sel(aluSrcMuxSel_rs2),
+    code_analysis U_Scode_analysis (
+        .Lcode(Lcode),
+        .rdata(ReadData2),
+        .data (Smux_data)
+    );
+
+    mux2x1 U_wdsrcMux (
+        .sel(wdSrcMuxSel),
+        .x0 (aluResult),
+        .x1 (Lmux_data),
+        .y  (wdSrcMuxOut)
+    );
+
+    mux2x1 U_ALUsrcMux (
+        .sel(aluSrcMuxSel),
         .x0 (ReadData2),
         .x1 (immExt),
-        .y  (aluSrcMuxOut_rs2)
+        .y  (aluSrcMuxOut)
     );
 
     //-------------------------------------------------------------------------------
@@ -76,8 +90,8 @@ module DataPath (
 
 
     alu U_alu (
-        .a(aluSrcMuxOut_rs1),
-        .b(aluSrcMuxOut_rs2),
+        .a(ReadData1),
+        .b(aluSrcMuxOut),
         .alucode(alucode),
         .outport(aluResult)
     );
@@ -189,7 +203,8 @@ module alu (
             `SRL: outport = a >> b;  // SRL
             `SRA: outport = $signed(a) >>> b;  // SRA
             `SLT: outport = ($signed(a) < $signed(b)) ? 32'd1 : 32'd0;  // SLT
-            `SLTU: outport = ($unsigned(a) < $unsigned(b)) ? 32'd1 : 32'd0;  // SLTU
+            `SLTU:
+            outport = ($unsigned(a) < $unsigned(b)) ? 32'd1 : 32'd0;  // SLTU
             `XOR: outport = a ^ b;  // XOR
             `OR: outport = a | b;  // OR
             `AND: outport = a & b;  // AND
@@ -241,11 +256,19 @@ module extend (
 );
 
     wire [6:0] opcode = instr_code[6:0];
+    wire [2:0] func3 = instr_code[14:12];
 
     always_comb begin
         case (opcode)
-            `L_TYPE, `I_TYPE: begin
+            `L_TYPE: begin
                 immExt = {{20{instr_code[31]}}, instr_code[31:20]};
+            end
+            `I_TYPE: begin
+                case (func3)
+                    `SLLI, `SRLI, `SRAI:
+                    immExt = {{27{instr_code[31]}}, instr_code[24:20]};
+                    default: immExt = {{20{instr_code[31]}}, instr_code[31:20]};
+                endcase
             end
             `S_TYPE: begin
                 immExt = {
@@ -257,3 +280,26 @@ module extend (
     end
 
 endmodule
+
+//-------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------
+
+module code_analysis (
+    input  logic [ 2:0] Lcode,
+    input  logic [31:0] rdata,
+    output logic [31:0] data
+);
+    always_comb begin
+        case (Lcode)
+            `LB: data = {{24{rdata[7]}}, rdata[7:0]};
+            `LH: data = {{16{rdata[15]}}, rdata[15:0]};
+            `LW: data = rdata;
+            `LBU: data = {24'b0, rdata[7:0]};
+            `LHU: data = {16'b0, rdata[15:0]};
+            default: data = 32'bx;
+        endcase
+    end
+endmodule
+
+//-------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------
