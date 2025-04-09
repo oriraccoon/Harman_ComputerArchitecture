@@ -27,9 +27,15 @@ module MCU(
 
     logic [31:0] instr_code;
     logic [31:0] instr_mem_addr;
-
+    logic        dataWe;
+    logic [31:0] dataAddr;
+    logic [31:0] dataWData;
+    logic [31:0] rData;
+    
     CPU U_CPU ( .* );
 
-    Instruction_Memory U_Instruction_Memory ( .* );
+    Instruction_Memory U_Instruction_Memory_ROM ( .* );
+
+    Data_Memory U_Data_Memory_RAM ( .* );
 
 endmodule
