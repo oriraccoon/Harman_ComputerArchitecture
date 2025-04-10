@@ -16,8 +16,9 @@ module CPU (
     logic       regFileWe;
     logic [3:0] alucode;
     logic [2:0] Lcode;
-    logic       wdSrcMuxSel;
+    logic [2:0] wdSrcMuxSel;
     logic       aluSrcMuxSel;
+    logic [1:0] pcSrcMuxSel;
 
     DataPath U_DataPath (.*);
     ControlUnit U_ControlUnit (.*);

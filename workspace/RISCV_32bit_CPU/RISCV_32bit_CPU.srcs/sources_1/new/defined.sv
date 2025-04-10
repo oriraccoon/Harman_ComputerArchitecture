@@ -1,5 +1,6 @@
 // function name
 
+// ALU
 `define ADD 4'b0000
 `define SUB 4'b1000
 `define SLL 4'b0001
@@ -10,6 +11,14 @@
 `define XOR 4'b0100
 `define OR 4'b0110
 `define AND 4'b0111
+
+// Branch
+`define BEQ 3'b000
+`define BNE 3'b001
+`define BLT 3'b100
+`define BGE 3'b101
+`define BLTU 3'b110
+`define BGEU 3'b111
 
 // TYPE
 `define R_TYPE 7'b0110011
@@ -22,7 +31,7 @@
 `define J_TYPE 7'b1101111
 `define JL_TYPE 7'b1100111
 
-// L-TYPE
+// L-TYPE,S
 `define LB 3'b000
 `define LH 3'b001
 `define LW 3'b010
