@@ -179,12 +179,17 @@ module RegFile (
     output logic [31:0] rData2
 );
 
-    logic [31:0] mem[0:2**5-1];
+    logic [31:0] mem[0:2**6-1];
 
     initial begin
         mem[0] = 0;
         mem[1] = 1;
-        for (int i = 2; i < 32; i++) begin
+        mem[2] = 2;
+        mem[3] = 2;
+        mem[4] = 3;
+        mem[5] = -3;
+        mem[6] = -4;
+        for (int i = 7; i < 64; i++) begin
             mem[i] = 10 + i;
         end
     end
@@ -268,29 +273,29 @@ module branch_Add (
                 case (func3)
                     `BEQ: begin
                         if (rs1 == rs2) pc_out = pc_in + immExt;
-                        else pc_out = pc_in;
+                        else pc_out = pc_in + 4;
                     end
                     `BNE: begin
                         if (rs1 != rs2) pc_out = pc_in + immExt;
-                        else pc_out = pc_in;
+                        else pc_out = pc_in + 4;
                     end
                     `BLT: begin
                         if ($signed(rs1) < $signed(rs2))
                             pc_out = pc_in + immExt;
-                        else pc_out = pc_in;
+                        else pc_out = pc_in + 4;
                     end
                     `BGE: begin
                         if ($signed(rs1) >= $signed(rs2))
                             pc_out = pc_in + immExt;
-                        else pc_out = pc_in;
+                        else pc_out = pc_in + 4;
                     end
                     `BLTU: begin
                         if (rs1 < rs2) pc_out = pc_in + immExt;
-                        else pc_out = pc_in;
+                        else pc_out = pc_in + 4;
                     end
                     `BGEU: begin
                         if (rs1 >= rs2) pc_out = pc_in + immExt;
-                        else pc_out = pc_in;
+                        else pc_out = pc_in + 4;
                     end
                     default: pc_out = 32'bx;
                 endcase
