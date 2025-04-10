@@ -76,7 +76,7 @@ module DataPath (
         .x0 (aluResult),
         .x1 (Lmux_data),
         .x2 (immExt),
-        .x3 (pcSrcMuxOut),
+        .x3 (branch_Add_pc),
         .x4 (pc_in),
         .y  (wdSrcMuxOut)
     );
@@ -463,7 +463,7 @@ module extend (
 
             end
             `LU_TYPE, `AU_TYPE: begin
-                immExt = {instr_code[31:12], {12'b0}} << 12;
+                immExt = instr_code[31:12] << 12;
             end
             `J_TYPE: begin
                 immExt = {

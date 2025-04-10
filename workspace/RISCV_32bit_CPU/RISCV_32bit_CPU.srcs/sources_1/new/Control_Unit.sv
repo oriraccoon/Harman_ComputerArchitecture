@@ -56,16 +56,16 @@ module ControlUnit (
                 out_signal = {8'b0_000_1_01_0, {1'b0, lisb_oper}, 3'bx};
             end
             `LU_TYPE: begin
-                out_signal = {8'b0_010_1_00_1, `SLL, 3'bx};
+                out_signal = {8'b0_010_1_00_1, 4'b0, 3'bx};
             end
             `AU_TYPE: begin
-                out_signal = {8'b0_011_1_01_1, `SLL, 3'bx};
+                out_signal = {8'b0_011_1_00_1, 4'b0, 3'bx};
             end
             `J_TYPE: begin
-                out_signal = {8'b0_100_1_10_1, `SLL, 3'bx};
+                out_signal = {8'b0_100_1_10_1, 4'b0, 3'bx};
             end
             `JL_TYPE: begin
-                out_signal = {8'b0_100_1_10_1, `SLL, 3'bx};
+                out_signal = {8'b0_100_1_10_1, 4'b0, 3'bx};
             end
         endcase
     end
