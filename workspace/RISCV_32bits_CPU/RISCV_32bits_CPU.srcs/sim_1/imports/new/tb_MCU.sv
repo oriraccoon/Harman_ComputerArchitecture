@@ -3,9 +3,9 @@
 // Company: 
 // Engineer: 
 // 
-// Create Date: 2025/04/08 16:19:05
+// Create Date: 2025/04/08 16:27:48
 // Design Name: 
-// Module Name: MCU
+// Module Name: tb_MCU
 // Project Name: 
 // Target Devices: 
 // Tool Versions: 
@@ -20,22 +20,22 @@
 //////////////////////////////////////////////////////////////////////////////////
 
 
-module MPU(
-    input  logic       clk,
-    input  logic       reset
+module tb_MCU ();
+
+    logic clk;
+    logic reset;
+
+    MPU dut (
+        .clk  (clk),
+        .reset(reset)
     );
 
-    logic [31:0] instr_code;
-    logic [31:0] instr_mem_addr;
-    logic        dataWe;
-    logic [31:0] dataAddr;
-    logic [31:0] dataWData;
-    logic [31:0] rData;
+    always #5 clk = ~clk;
+
+    initial begin
+        clk   = 0;
+        reset = 1;
+        #2 reset = 0;
+    end
     
-    CPU U_CPU ( .* );
-
-    Instruction_Memory U_Instruction_Memory_ROM ( .* );
-
-    Data_Memory U_Data_Memory_RAM ( .* );
-
 endmodule

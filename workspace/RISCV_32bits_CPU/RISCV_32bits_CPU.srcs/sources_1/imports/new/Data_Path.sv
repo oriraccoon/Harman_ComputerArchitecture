@@ -180,7 +180,6 @@ module RegFile (
 );
 
     logic [31:0] mem[0:11];
-
     initial begin
         mem[0] = 0;
         mem[1] = 1;
@@ -433,7 +432,7 @@ module extend (
             end
             `I_TYPE: begin
                 case (func3)
-                    `SLLI, `SRLI, `SRAI:
+                    `SLLI, `SRLI:
                     immExt = {{27{instr_code[31]}}, instr_code[24:20]};
                     `SLTIU: immExt = {20'b0, instr_code[31:20]};
                     default: immExt = {{20{instr_code[31]}}, instr_code[31:20]};
@@ -441,7 +440,9 @@ module extend (
             end
             `S_TYPE: begin
                 immExt = {
-                    {20{instr_code[31]}}, instr_code[31:25], instr_code[11:7]
+                    {20{instr_code[31]}},
+                    instr_code[31:25],
+                    instr_code[11:7]
                 };
             end
             `B_TYPE: begin
