@@ -32,7 +32,6 @@ module ControlUnit (
 
     logic [14:0] out_signal;
     assign {dataWe_sig, wdSrcMuxSel_sig, aluSrcMuxSel_sig, pcSrcMuxSel_sig, regFileWe_sig, alucode_sig, Lcode_sig} = out_signal;
-
     typedef enum {
         Fetch,
         Decode,
@@ -96,14 +95,9 @@ module ControlUnit (
             end
             Execution: begin
                 case (opcode)
-                    `R_TYPE: begin
+                    `R_TYPE, `I_TYPE, `B_TYPE, `LU_TYPE, `AU_TYPE, `J_TYPE, `JL_TYPE: begin
                         next = Fetch;
-                        regFileWe_next = regFileWe_sig;
-                        aluSrcMuxSel_next = aluSrcMuxSel_sig;
-                        wdSrcMuxSel_next = wdSrcMuxSel_sig;
-                        pcSrcMuxSel_next = pcSrcMuxSel_sig;
-                        alucode_next = alucode_sig;
-                        Lcode_next = 3'bx;
+                        {dataWe_next, wdSrcMuxSel_next, aluSrcMuxSel_next, pcSrcMuxSel_next, regFileWe_next, alucode_next, Lcode_next} = out_signal;
                     end
                     `L_TYPE: begin
                         next = MemAcc;
@@ -112,68 +106,13 @@ module ControlUnit (
                         alucode_next = alucode_sig;
                         Lcode_next = Lcode_sig;
                     end
-                    `I_TYPE: begin
-                        next = Fetch;
-                        regFileWe_next = regFileWe_sig;
-                        aluSrcMuxSel_next = aluSrcMuxSel_sig;
-                        wdSrcMuxSel_next = wdSrcMuxSel_sig;
-                        pcSrcMuxSel_next = pcSrcMuxSel_sig;
-                        alucode_next = alucode_sig;
-                        Lcode_next = 3'bx;
-                    end
                     `S_TYPE: begin
-                        regFileWe_next = regFileWe_sig;
                         next = MemAcc;
                         aluSrcMuxSel_next = aluSrcMuxSel_sig;
                         wdSrcMuxSel_next = wdSrcMuxSel_sig;
                         pcSrcMuxSel_next = pcSrcMuxSel_sig;
                         alucode_next = alucode_sig;
                         Lcode_next = Lcode_sig;
-                    end
-                    `B_TYPE: begin
-                        regFileWe_next = regFileWe_sig;
-                        next = Fetch;
-                        aluSrcMuxSel_next = aluSrcMuxSel_sig;
-                        wdSrcMuxSel_next = wdSrcMuxSel_sig;
-                        pcSrcMuxSel_next = pcSrcMuxSel_sig;
-                        alucode_next = alucode_sig;
-                        Lcode_next = 3'bx;
-                    end
-                    `LU_TYPE: begin
-                        regFileWe_next = regFileWe_sig;
-                        next = Fetch;
-                        aluSrcMuxSel_next = aluSrcMuxSel_sig;
-                        wdSrcMuxSel_next = wdSrcMuxSel_sig;
-                        pcSrcMuxSel_next = pcSrcMuxSel_sig;
-                        alucode_next = alucode_sig;
-                        Lcode_next = 3'bx;
-                    end
-                    `AU_TYPE: begin
-                        regFileWe_next = regFileWe_sig;
-                        next = Fetch;
-                        aluSrcMuxSel_next = aluSrcMuxSel_sig;
-                        wdSrcMuxSel_next = wdSrcMuxSel_sig;
-                        pcSrcMuxSel_next = pcSrcMuxSel_sig;
-                        alucode_next = alucode_sig;
-                        Lcode_next = 3'bx;
-                    end
-                    `J_TYPE: begin
-                        regFileWe_next = regFileWe_sig;
-                        next = Fetch;
-                        aluSrcMuxSel_next = aluSrcMuxSel_sig;
-                        wdSrcMuxSel_next = wdSrcMuxSel_sig;
-                        pcSrcMuxSel_next = pcSrcMuxSel_sig;
-                        alucode_next = alucode_sig;
-                        Lcode_next = 3'bx;
-                    end
-                    `JL_TYPE: begin
-                        regFileWe_next = regFileWe_sig;
-                        next = Fetch;
-                        aluSrcMuxSel_next = aluSrcMuxSel_sig;
-                        wdSrcMuxSel_next = wdSrcMuxSel_sig;
-                        pcSrcMuxSel_next = pcSrcMuxSel_sig;
-                        alucode_next = alucode_sig;
-                        Lcode_next = 3'bx;
                     end
                 endcase
             end
@@ -190,6 +129,7 @@ module ControlUnit (
             end
             WriteBack: begin
                 next = Fetch;
+                regFileWe_next = regFileWe_sig;
                 wdSrcMuxSel_next = wdSrcMuxSel_sig;
             end
         endcase
