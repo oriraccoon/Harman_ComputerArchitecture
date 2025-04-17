@@ -4,28 +4,18 @@
 module DataPath (
     input logic        clk,
     input logic        reset,
-
-    // Fetch
     input logic [31:0] instr_code,
-    input logic        pcen,
-
-    // Decode
     input logic        regFileWe,
-
-    // Execution
     input logic [ 3:0] alucode,
     input logic [ 2:0] Lcode,
     input logic [ 2:0] wdSrcMuxSel,
     input logic        aluSrcMuxSel,
     input logic [ 1:0] pcSrcMuxSel,
+    input logic [31:0] rData,
 
-    // MemAcc
     output logic [31:0] instr_mem_addr,
     output logic [31:0] dataAddr,
-    output logic [31:0] dataWData,
-
-    // WriteBack
-    input logic [31:0] rData
+    output logic [31:0] dataWData
 );
 
     //-------------------------------------------------------------------------------
@@ -126,7 +116,7 @@ module DataPath (
     register U_Program_Counter (
         .clk(clk),
         .reset(reset),
-        .en(pcen),
+        .en(1),
         .d(pcSrcMuxOut),
         .q(pc_out)
     );
@@ -189,8 +179,8 @@ module RegFile (
     output logic [31:0] rData2
 );
 
-    logic [31:0] mem[0:63];
-/*
+    logic [31:0] mem[0:11];
+
     initial begin
         mem[0] = 0;
         mem[1] = 1;
@@ -203,7 +193,7 @@ module RegFile (
             mem[i] = 10 + i;
         end
     end
-*/
+
     always_ff @(posedge clk) begin : write
         if (writeEn) mem[writeAddr] <= wData;
     end
@@ -443,7 +433,7 @@ module extend (
             end
             `I_TYPE: begin
                 case (func3)
-                    `SLLI, `SRLI:
+                    `SLLI, `SRLI, `SRAI:
                     immExt = {{27{instr_code[31]}}, instr_code[24:20]};
                     `SLTIU: immExt = {20'b0, instr_code[31:20]};
                     default: immExt = {{20{instr_code[31]}}, instr_code[31:20]};
@@ -451,9 +441,7 @@ module extend (
             end
             `S_TYPE: begin
                 immExt = {
-                    {20{instr_code[31]}},
-                    instr_code[31:25],
-                    instr_code[11:7]
+                    {20{instr_code[31]}}, instr_code[31:25], instr_code[11:7]
                 };
             end
             `B_TYPE: begin

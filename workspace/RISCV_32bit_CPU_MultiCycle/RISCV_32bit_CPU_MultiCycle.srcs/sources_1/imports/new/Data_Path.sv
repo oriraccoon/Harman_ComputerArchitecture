@@ -3,7 +3,7 @@
 
 module DataPath (
     input logic        clk,
-    input logic        reset,
+    input logic        rst,
 
     // Fetch
     input logic [31:0] instr_code,
@@ -32,11 +32,11 @@ module DataPath (
     //  variable declaration
     //-------------------------------------------------------------------------------
 
-    logic [31:0] ReadData1, ReadData2;  // Register_File
+    logic [31:0] ReadData1, ReadData2, ReadData1_ff, ReadData2_ff;  // Register_File
     logic [31:0] pc_in, pc_out, branch_Add_pc;  // Program_Counter
-    logic [31:0] immExt, wdSrcMuxOut, aluSrcMuxOut, pcSrcMuxOut, jump_pc_out;  // Mux
-    logic [31:0] aluResult;  // ALU
-    logic [31:0] Lmux_data, Smux_data;  // MUX
+    logic [31:0] immExt, immExt_ff, wdSrcMuxOut, aluSrcMuxOut, pcSrcMuxOut, pcSrcMuxOut_ff, jump_pc_out;  // Mux
+    logic [31:0] aluResult, aluResult_ff;  // ALU
+    logic [31:0] Lmux_data, Smux_data, Smux_data_ff;  // MUX
 
 
     assign instr_mem_addr = pc_out;
@@ -61,8 +61,21 @@ module DataPath (
         .writeAddr(instr_code[11:7]),
         .writeEn(regFileWe),
         .wData(wdSrcMuxOut),
-        .rData1(ReadData1),
-        .rData2(ReadData2)
+        .rData1(ReadData1_ff),
+        .rData2(ReadData2_ff)
+    );
+
+    FF U_RD1_FF (
+        .clk(clk),
+        .rst(rst),
+        .d(ReadData1_ff),
+        .q(ReadData1)
+    );
+    FF U_RD2_FF (
+        .clk(clk),
+        .rst(rst),
+        .d(ReadData2_ff),
+        .q(ReadData2)
     );
 
     //-------------------------------------------------------------------------------
@@ -78,7 +91,14 @@ module DataPath (
     LScode_analysis U_Scode_analysis (
         .Lcode(Lcode),
         .rdata(ReadData2),
-        .data (Smux_data)
+        .data (Smux_data_ff)
+    );
+
+    FF U_Sdata_FF (
+        .clk(clk),
+        .rst(rst),
+        .d(Smux_data_ff),
+        .q(Smux_data)
     );
 
     mux5x1 U_wdsrcMux (
@@ -107,25 +127,37 @@ module DataPath (
         .a(ReadData1),
         .b(aluSrcMuxOut),
         .alucode(alucode),
-        .outport(aluResult)
+        .outport(aluResult_ff)
     );
 
+    FF U_ALU_FF (
+        .clk(clk),
+        .rst(rst),
+        .d(aluResult_ff),
+        .q(aluResult)
+    );
     //-------------------------------------------------------------------------------
     //-------------------------------------------------------------------------------
     //-------------------------------------------------------------------------------
 
     extend U_ImmExtend (
         .instr_code(instr_code),
-        .immExt(immExt)
+        .immExt(immExt_ff)
     );
 
+    FF U_IMM_FF (
+        .clk(clk),
+        .rst(rst),
+        .d(immExt_ff),
+        .q(immExt)
+    );
     //-------------------------------------------------------------------------------
     //  Program_Counter
     //-------------------------------------------------------------------------------
 
     register U_Program_Counter (
         .clk(clk),
-        .reset(reset),
+        .rst(rst),
         .en(pcen),
         .d(pcSrcMuxOut),
         .q(pc_out)
@@ -163,7 +195,14 @@ module DataPath (
         .x0 (pc_in),
         .x1 (branch_Add_pc),
         .x2 (jump_pc_out),
-        .y  (pcSrcMuxOut)
+        .y  (pcSrcMuxOut_ff)
+    );
+
+    FF U_PC_FF (
+        .clk(clk),
+        .rst(rst),
+        .d(pcSrcMuxOut_ff),
+        .q(pcSrcMuxOut)
     );
 
     //-------------------------------------------------------------------------------
@@ -218,16 +257,37 @@ endmodule
 
 module register (
     input  logic        clk,
-    input  logic        reset,
+    input  logic        rst,
     input  logic        en,
     input  logic [31:0] d,
     output logic [31:0] q
 );
 
-    always_ff @(posedge clk, posedge reset) begin : register
-        if (reset) q <= 0;
+    always_ff @(posedge clk, posedge rst) begin : register
+        if (rst) q <= 0;
         else begin
             if (en) q <= d;
+        end
+    end
+
+endmodule
+
+module FF (
+    input logic clk,
+    input logic rst,
+    input  logic [31:0] d,
+    output logic [31:0] q
+);
+
+    always_ff @( posedge clk, posedge rst ) begin
+        if (rst) begin
+            q <= 0;
+        end
+        else if(^d !== 1'bx) begin
+            q <= d;
+        end
+        else begin
+            q <= q;
         end
     end
 
