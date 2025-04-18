@@ -36,7 +36,7 @@ module DataPath (
     logic [31:0] pc_in, pc_out, branch_Add_pc;  // Program_Counter
     logic [31:0] immExt, immExt_ff, wdSrcMuxOut, aluSrcMuxOut, pcSrcMuxOut, pcSrcMuxOut_ff, jump_pc_out;  // Mux
     logic [31:0] aluResult, aluResult_ff;  // ALU
-    logic [31:0] Lmux_data, Smux_data, Smux_data_ff;  // MUX
+    logic [31:0] Lmux_data, Smux_data, Lmux_data_ff, Smux_data_ff;  // MUX
 
 
     assign instr_mem_addr = pc_out;
@@ -85,7 +85,7 @@ module DataPath (
     LScode_analysis U_Lcode_analysis (
         .Lcode(Lcode),
         .rdata(rData),
-        .data (Lmux_data)
+        .data (Lmux_data_ff)
     );
 
     LScode_analysis U_Scode_analysis (
@@ -94,6 +94,12 @@ module DataPath (
         .data (Smux_data_ff)
     );
 
+    FF U_Ldata_FF (
+        .clk(clk),
+        .rst(rst),
+        .d(Lmux_data_ff),
+        .q(Lmux_data)
+    );
     FF U_Sdata_FF (
         .clk(clk),
         .rst(rst),
@@ -127,15 +133,9 @@ module DataPath (
         .a(ReadData1),
         .b(aluSrcMuxOut),
         .alucode(alucode),
-        .outport(aluResult_ff)
+        .outport(aluResult)
     );
 
-    FF U_ALU_FF (
-        .clk(clk),
-        .rst(rst),
-        .d(aluResult_ff),
-        .q(aluResult)
-    );
     //-------------------------------------------------------------------------------
     //-------------------------------------------------------------------------------
     //-------------------------------------------------------------------------------
@@ -186,7 +186,7 @@ module DataPath (
         .rs1(ReadData1),
         .rs2(ReadData2),
         .pc_in(pc_out),
-        .immExt(aluSrcMuxOut),
+        .immExt(immExt),
         .pc_out(branch_Add_pc)
     );
 
@@ -279,16 +279,9 @@ module FF (
     output logic [31:0] q
 );
 
-    always_ff @( posedge clk, posedge rst ) begin
-        if (rst) begin
-            q <= 0;
-        end
-        else if(^d !== 1'bx) begin
-            q <= d;
-        end
-        else begin
-            q <= q;
-        end
+    always_ff @(posedge clk, posedge rst) begin
+        if (rst) q <= 0;
+        else q <= d;
     end
 
 endmodule
@@ -433,7 +426,6 @@ module mux2x1 (
         case (sel)
             0: y = x0;
             1: y = x1;
-            default: y = 32'bx;
         endcase
     end
 

@@ -24,14 +24,14 @@ module ControlUnit (
     wire [6:0] opcode = instr_code[6:0];
     wire [3:0] r_oper = {instr_code[30], instr_code[14:12]};
     wire [2:0] lisb_oper = instr_code[14:12];
-    logic dataWe_reg, regFileWe_reg, aluSrcMuxSel_reg, dataWe_next, regFileWe_next, aluSrcMuxSel_next, dataWe_sig, regFileWe_sig, aluSrcMuxSel_sig;
-    logic [1:0] pcSrcMuxSel_reg, pcSrcMuxSel_next, pcSrcMuxSel_sig;
-    logic [2:0] wdSrcMuxSel_reg, Lcode_reg, wdSrcMuxSel_next, Lcode_next, wdSrcMuxSel_sig, Lcode_sig;
-    logic [3:0] alucode_reg, alucode_next, alucode_sig;
+    logic dataWe_sig, regFileWe_sig, aluSrcMuxSel_sig;
+    logic [1:0] pcSrcMuxSel_sig;
+    logic [2:0] wdSrcMuxSel_sig, Lcode_sig;
+    logic [3:0] alucode_sig;
 
-
-    logic [14:0] out_signal;
+    logic [14:0] out_signal, internal_signals;
     assign {dataWe_sig, wdSrcMuxSel_sig, aluSrcMuxSel_sig, pcSrcMuxSel_sig, regFileWe_sig, alucode_sig, Lcode_sig} = out_signal;
+    assign {dataWe, wdSrcMuxSel, aluSrcMuxSel, pcSrcMuxSel, regFileWe, alucode, Lcode} = internal_signals;
     typedef enum {
         Fetch,
         Decode,
@@ -45,27 +45,11 @@ module ControlUnit (
     always_ff @(posedge clk, posedge rst) begin : initialize
         if (rst) begin
             state <= Fetch;
-            dataWe_reg <= 1'bx;
-            regFileWe_reg <= 1'bx;
-            aluSrcMuxSel_reg <= 1'bx;
-            pcSrcMuxSel_reg <= 2'bx;
-            wdSrcMuxSel_reg <= 3'bx;
-            Lcode_reg <= 3'bx;
-            alucode_reg <= 4'bx;
         end else begin
             state <= next;
-            dataWe_reg <= dataWe_next;
-            regFileWe_reg <= regFileWe_next;
-            aluSrcMuxSel_reg <= aluSrcMuxSel_next;
-            pcSrcMuxSel_reg <= pcSrcMuxSel_next;
-            wdSrcMuxSel_reg <= wdSrcMuxSel_next;
-            Lcode_reg <= Lcode_next;
-            alucode_reg <= alucode_next;
         end
     end
 
-    assign {dataWe, wdSrcMuxSel, aluSrcMuxSel, pcSrcMuxSel, regFileWe, alucode, Lcode} = 
-    {dataWe_reg, wdSrcMuxSel_reg, aluSrcMuxSel_reg, pcSrcMuxSel_reg, regFileWe_reg, alucode_reg, Lcode_reg};
 
     //-------------------------------------------------------------------------------
     //-------------------------------------------------------------------------------
@@ -76,103 +60,113 @@ module ControlUnit (
     //-------------------------------------------------------------------------------
 
     always_comb begin
-        next = state;
+        internal_signals = 15'b0;
         pcen = 1'b0;
-        dataWe_next = 1'bx;
-        regFileWe_next = 1'bx;
-        aluSrcMuxSel_next = 1'bx;
-        pcSrcMuxSel_next = 2'bx;
-        wdSrcMuxSel_next = 3'bx;
-        Lcode_next = 3'bx;
-        alucode_next = 4'bx;
+        next = state;
         case (state)
             Fetch: begin
-                pcen = 1;
+                internal_signals = 15'b0;
+                pcen = 1'b1;
                 next = Decode;
             end
             Decode: begin
+                internal_signals = 15'b0;
                 next = Execution;
             end
             Execution: begin
+                // internal_signals = {1'b0, 3'b0, 1'b0, 2'b0, 1'b0, alucode_sig, Lcode_sig};
+                // {dataWe, wdSrcMuxSel, aluSrcMuxSel, pcSrcMuxSel, regFileWe, alucode, Lcode}
                 case (opcode)
                     `R_TYPE, `I_TYPE, `B_TYPE, `LU_TYPE, `AU_TYPE, `J_TYPE, `JL_TYPE: begin
                         next = Fetch;
-                        {dataWe_next, wdSrcMuxSel_next, aluSrcMuxSel_next, pcSrcMuxSel_next, regFileWe_next, alucode_next, Lcode_next} = out_signal;
+                        internal_signals = out_signal;
                     end
                     `L_TYPE: begin
                         next = MemAcc;
-                        aluSrcMuxSel_next = aluSrcMuxSel_sig;
-                        pcSrcMuxSel_next = pcSrcMuxSel_sig;
-                        alucode_next = alucode_sig;
-                        Lcode_next = Lcode_sig;
+                        internal_signals = {1'b0, wdSrcMuxSel_sig, aluSrcMuxSel_sig, 2'b0, 1'b0, `ADD, Lcode_sig};
                     end
                     `S_TYPE: begin
                         next = MemAcc;
-                        aluSrcMuxSel_next = aluSrcMuxSel_sig;
-                        wdSrcMuxSel_next = wdSrcMuxSel_sig;
-                        pcSrcMuxSel_next = pcSrcMuxSel_sig;
-                        alucode_next = alucode_sig;
-                        Lcode_next = Lcode_sig;
+                        internal_signals = {1'b0, 3'b0, aluSrcMuxSel_sig, 2'b0, 1'b0, alucode_sig, Lcode_sig};
+                    end
+                    default: begin
+                        next = Fetch;
+                        internal_signals = 15'b0;
                     end
                 endcase
             end
             MemAcc: begin
-                dataWe_next = dataWe_sig;
                 case (opcode)
                     `L_TYPE: begin
                         next = WriteBack;
+                        internal_signals = {1'b0, wdSrcMuxSel_sig, aluSrcMuxSel_sig, 2'b0, 1'b0, alucode_sig, Lcode_sig};
                     end
                     `S_TYPE: begin
+                        internal_signals = out_signal;
                         next = Fetch;
+                    end
+                    default: begin
+                        next = Fetch;
+                        internal_signals = 15'b0;
                     end
                 endcase
             end
             WriteBack: begin
                 next = Fetch;
-                regFileWe_next = regFileWe_sig;
-                wdSrcMuxSel_next = wdSrcMuxSel_sig;
+                internal_signals = out_signal;
+            end
+            default: begin
+                next = Fetch;
+                internal_signals = 15'b0;
+                pcen = 1'b0;
             end
         endcase
     end
 
     always_comb begin
-        out_signal = 0;
+        // {dataWe, wdSrcMuxSel, aluSrcMuxSel, pcSrcMuxSel, regFileWe, alucode, Lcode}
+        out_signal = 0;  // 초기화
         case (opcode)
             `R_TYPE: begin
-                out_signal = {8'b0_000_0_00_1, r_oper, 3'bx};
+                out_signal = {1'b0, 3'b000, 1'b0, 2'b00, 1'b1, r_oper, 3'b0};
             end
             `L_TYPE: begin
-                out_signal = {8'b0_001_1_00_1, `ADD, lisb_oper};
+                out_signal = {1'b0, 3'b001, 1'b1, 2'b00, 1'b1, `ADD, lisb_oper};
             end
             `I_TYPE: begin
                 case (lisb_oper)
-                    `SLLI, `SRLI, `SRAI:
-                    out_signal = {8'b0_000_1_00_1, r_oper, 3'bx};
-                    default:
-                    out_signal = {8'b0_000_1_00_1, {1'b0, lisb_oper}, 3'bx};
+                    `SLLI, `SRLI: begin
+                        out_signal = {1'b0, 3'b000, 1'b1, 2'b00, 1'b1, r_oper, 3'b0};
+                    end
+                    default: begin
+                        out_signal = {1'b0, 3'b000, 1'b1, 2'b00, 1'b1, {1'b0, lisb_oper}, 3'b0};
+                    end
                 endcase
-
             end
             `S_TYPE: begin
-                out_signal = {8'b1_000_1_00_0, `ADD, lisb_oper};
+                out_signal = {1'b1, 3'b000, 1'b1, 2'b00, 1'b0, `ADD, lisb_oper};
             end
             `B_TYPE: begin
-                out_signal = {8'b0_000_1_01_0, {1'b0, lisb_oper}, 3'bx};
+                out_signal = {1'b0, 3'b000, 1'b0, 2'b01, 1'b0, {1'b0, lisb_oper}, 3'b0};
             end
             `LU_TYPE: begin
-                out_signal = {8'b0_010_1_00_1, 4'b0, 3'bx};
+                out_signal = {1'b0, 3'b010, 1'b1, 2'b00, 1'b1, 4'b0, 3'b0};
             end
             `AU_TYPE: begin
-                out_signal = {8'b0_011_1_00_1, 4'b0, 3'bx};
+                out_signal = {1'b0, 3'b011, 1'b1, 2'b00, 1'b1, 4'b0, 3'b0};
             end
             `J_TYPE: begin
-                out_signal = {8'b0_100_1_10_1, 4'b0, 3'bx};
+                out_signal = {1'b0, 3'b100, 1'b1, 2'b10, 1'b1, 4'b0, 3'b0};
             end
             `JL_TYPE: begin
-                out_signal = {8'b0_100_1_10_1, 4'b0, 3'bx};
+                out_signal = {1'b0, 3'b100, 1'b1, 2'b10, 1'b1, 4'b0, 3'b0};
+            end
+            default: begin
+                out_signal = 0;
             end
         endcase
     end
+
 
 
     //-------------------------------------------------------------------------------
