@@ -1,45 +1,21 @@
-$repoPath = "C:\Users\kccistc\Documents\GitHub\Harman_ComputerArchitecture"
-$gitExe = "C:\Program Files\Git\bin\git.exe"
-$vivadoPath = "C:\Xilinx\Vivado\2020.2\bin\vivado.bat"
+$repoPath = "C:\Users\kccistc\Documents\GitHub\Harman_ComputerArchitecture"  # 로컬 레포지토리 경로
+$gitExe = "C:\Program Files\Git\bin\git.exe"   # Git 실행 파일 경로
+$vivadoPath = "C:\Xilinx\Vivado\2020.2\bin\vivado.bat"  # Vivado 실행 경로
 $vivadoWorkspace = "$env:USERPROFILE\Desktop\workspace"
 $gitWorkspace = "$repoPath\workspace"
+# 오늘 날짜 가져오기 (yyyy-MM-dd 형식)
 $today = Get-Date -Format "yyyy-MM-dd"
 
-function Commit-And-Push {
-    Set-Location -Path $repoPath
-    $currentTime = Get-Date -Format "yyyy-MM-dd HH:mm"
-    $commitMessage = "Auto commit for modified projects on $currentTime"
-
-    & $gitExe add .
-    & $gitExe commit -m $commitMessage
-    & $gitExe push origin main
-
-    Write-Host "`n[✔] Git commit & push complete at $currentTime"
-}
-
-# 사용자 입력 루프: c 누르면 수동 커밋
-Start-Job {
-    while ($true) {
-        $input = Read-Host "`n[Manual Commit] 입력: 'c' 입력 시 커밋, 'exit' 입력 시 종료"
-        if ($input -eq "c") {
-            Commit-And-Push
-        } elseif ($input -eq "exit") {
-            break
-        }
-    }
-} | Out-Null
-
-# Vivado 실행 (현재 창에서 실행하고 종료까지 대기)
+# Vivado 실행
 Write-Host "Vivado 2020.2 Start!!"
-& $vivadoPath
-Write-Host "`nVivado Closed. Checking for modified projects..."
+Start-Process -FilePath $vivadoPath -NoNewWindow -Wait
 
-# 오늘 수정된 프로젝트 찾기
+Write-Host "Vivado Closed. Checking for modified projects..."
+
+# 수정된 날짜가 오늘인 폴더 찾기
 $modifiedProjects = Get-ChildItem -Path $vivadoWorkspace -Directory | Where-Object {
     $_.LastWriteTime.Date -eq (Get-Date $today).Date
 }
-
-$hasChanges = $false
 
 foreach ($project in $modifiedProjects) {
     $projectName = $project.Name
@@ -48,22 +24,38 @@ foreach ($project in $modifiedProjects) {
 
     if (Test-Path $srcPath) {
         Write-Host "Detected Changed Project: $projectName"
-        $hasChanges = $true
 
+        # 기존에 대상 폴더가 있다면 삭제 (완전한 덮어쓰기를 위해)
         if (Test-Path $dstPath) {
             Write-Host "Deleting old version of: $dstPath"
             Remove-Item -Path $dstPath -Recurse -Force
         }
 
+        # 새로 복사
         Copy-Item -Path $srcPath -Destination $dstPath -Recurse -Force
     }
 }
 
-if ($hasChanges) {
-    Commit-And-Push
-} else {
-    Write-Host "Nothing has changed today. No auto commit."
+# 만약 수정된 프로젝트가 없으면 메시지 출력
+if ($modifiedProjects.Count -eq 0) {
+    Write-Host "Nothing has changed"
 }
 
-# 종료
+Write-Host "Git Auto Commit & Push Start!!"
+
+# Git 커밋 및 푸시 수행
+Set-Location -Path $repoPath
+
+# 현재 시간 포맷 (예: 2025-03-06 15:30)
+$currentTime = Get-Date -Format "yyyy-MM-dd HH:mm"
+$commitMessage = "Auto commit for modified projects on $currentTime"
+
+& $gitExe add .
+& $gitExe commit -m $commitMessage
+& $gitExe push origin main
+
+Write-Host "Git Auto Commit & Push done."
+
+# 3초 대기 후 PowerShell 창 종료
+Start-Sleep -Seconds 3
 Exit
