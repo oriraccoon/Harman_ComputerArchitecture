@@ -9,7 +9,7 @@ function Commit-And-Push {
     Set-Location -Path $repoPath
     $currentTime = Get-Date -Format "yyyy-MM-dd HH:mm"
     $commitMessage = "Auto commit for modified projects on $currentTime"
-    
+
     & $gitExe add .
     & $gitExe commit -m $commitMessage
     & $gitExe push origin main
@@ -17,22 +17,21 @@ function Commit-And-Push {
     Write-Host "`n[✔] Git commit & push complete at $currentTime"
 }
 
-# Vivado 백그라운드 실행
-Write-Host "Vivado 2020.2 Start!!"
-$vivadoProcess = Start-Process -FilePath $vivadoPath -PassThru
-
-# 사용자 입력 감지 쓰레드 (엔터 누르면 수동 커밋)
+# 사용자 입력 루프: c 누르면 수동 커밋
 Start-Job {
     while ($true) {
-        $null = Read-Host "`n[Manual] Press Enter to commit manually (type 'exit' to stop manual commits)"
-        if ($_ -eq "exit") { break }
-        Commit-And-Push
+        $input = Read-Host "`n[Manual Commit] 입력: 'c' 입력 시 커밋, 'exit' 입력 시 종료"
+        if ($input -eq "c") {
+            Commit-And-Push
+        } elseif ($input -eq "exit") {
+            break
+        }
     }
 } | Out-Null
 
-# Vivado 종료까지 대기
-$vivadoProcess.WaitForExit()
-
+# Vivado 실행 (현재 창에서 실행하고 종료까지 대기)
+Write-Host "Vivado 2020.2 Start!!"
+& $vivadoPath
 Write-Host "`nVivado Closed. Checking for modified projects..."
 
 # 오늘 수정된 프로젝트 찾기
@@ -60,12 +59,11 @@ foreach ($project in $modifiedProjects) {
     }
 }
 
-# 자동 커밋 후 종료
 if ($hasChanges) {
     Commit-And-Push
 } else {
     Write-Host "Nothing has changed today. No auto commit."
 }
 
-# PowerShell 종료
+# 종료
 Exit
