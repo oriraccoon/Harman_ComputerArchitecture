@@ -6,7 +6,9 @@ module MCU (
     output logic [7:0] GPOA,
     input  logic [7:0] GPIB,
     inout  logic [7:0] GPIOC,
-    inout  logic [7:0] GPIOD
+    inout  logic [7:0] GPIOD,
+    output logic [7:0] fndFont,
+    output logic [3:0] fndCom
 );
     // global signals
     logic        PCLK;
@@ -21,16 +23,19 @@ module MCU (
     logic        PSEL_GPI;
     logic        PSEL_GPIOC;
     logic        PSEL_GPIOD;
+    logic        PSEL_FND;
     logic [31:0] PRDATA_RAM;
     logic [31:0] PRDATA_GPO;
     logic [31:0] PRDATA_GPI;
     logic [31:0] PRDATA_GPIOC;
     logic [31:0] PRDATA_GPIOD;
+    logic [31:0] PRDATA_FND;
     logic        PREADY_RAM;
     logic        PREADY_GPO;
     logic        PREADY_GPI;
     logic        PREADY_GPIOC;
     logic        PREADY_GPIOD;
+    logic        PREADY_FND;
 
     // CPU - APB_Master Signals
     // Internal Interface Signals
@@ -70,16 +75,19 @@ module MCU (
         .PSEL2  (PSEL_GPI),
         .PSEL3  (PSEL_GPIOC),
         .PSEL4  (PSEL_GPIOD),
+        .PSEL5  (PSEL_FND),
         .PRDATA0(PRDATA_RAM),
         .PRDATA1(PRDATA_GPO),
         .PRDATA2(PRDATA_GPI),
         .PRDATA3(PRDATA_GPIOC),
         .PRDATA4(PRDATA_GPIOD),
+        .PRDATA5(PRDATA_FND),
         .PREADY0(PREADY_RAM),
         .PREADY1(PREADY_GPO),
         .PREADY2(PREADY_GPI),
         .PREADY3(PREADY_GPIOC),
-        .PREADY4(PREADY_GPIOD)
+        .PREADY4(PREADY_GPIOD),
+        .PREADY5(PREADY_FND)
     );
 
     ram U_RAM (
@@ -122,4 +130,20 @@ module MCU (
         .PREADY(PREADY_GPIOD),
         .inOutPort(GPIOD)
     );
+
+    /*FND_IP U_FND_IP(
+        .*,        
+        .PSEL(PSEL_GPIOD),
+        .PRDATA(PRDATA_GPIOD),
+        .PREADY(PREADY_GPIOD),
+        .fnd_com(an)
+);*/
+    FndController_Periph U_FndController_Periph(
+        .*,
+        .PSEL(PSEL_FND),
+        .PRDATA(PRDATA_FND),
+        .PREADY(PREADY_FND)
+    );
 endmodule
+
+

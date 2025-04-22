@@ -24,14 +24,16 @@ module tb_MCU ();
 
     logic clk;
     logic reset;
-    wire [7:0] GPIO;
-
+    wire [7:0] GPIOC;
+    wire [7:0] GPIOD;
     
 
     MCU dut (
         .clk  (clk),
         .reset(reset),
-        .GPIO(GPIO)
+        
+        .GPIOC(GPIOC),
+        .GPIOD(GPIOD)
     );
 
     always #5 clk = ~clk;
