@@ -131,13 +131,6 @@ module MCU (
         .inOutPort(GPIOD)
     );
 
-    /*FND_IP U_FND_IP(
-        .*,        
-        .PSEL(PSEL_GPIOD),
-        .PRDATA(PRDATA_GPIOD),
-        .PREADY(PREADY_GPIOD),
-        .fnd_com(an)
-);*/
     FndController_Periph U_FndController_Periph(
         .*,
         .PSEL(PSEL_FND),

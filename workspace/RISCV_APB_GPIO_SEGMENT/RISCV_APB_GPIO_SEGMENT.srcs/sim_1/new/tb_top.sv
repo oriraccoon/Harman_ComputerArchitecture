@@ -1,4 +1,4 @@
-`timescale 1ns / 1ps
+/*`timescale 1ns / 1ps
 
 class transaction;
 
@@ -108,40 +108,49 @@ endclass  //driver
 
 class scoreboard;
     mailbox #(transaction) Sb2Mon_mbox;
-    transaction            fnd_tr;
+    logic [3:0] expected_bcd;
+    logic [7:0] expected_seg;
 
     function new(mailbox#(transaction) Sb2Mon_mbox);
         this.Sb2Mon_mbox = Sb2Mon_mbox;
-    endfunction  //new()
+    endfunction
 
-    function automatic logic [7:0] bcd2seg(int bcd);
+    // BCD to 7-segment decoder
+    function automatic logic [7:0] bcd2seg(logic [3:0] bcd);
         case (bcd)
-            0:      return 8'b1100_0000;
-            1:      return 8'b1111_1001;
-            2:      return 8'b1010_0100;
-            3:      return 8'b1011_0000;
-            4:      return 8'b1001_1001;
-            5:      return 8'b1001_0010;
-            6:      return 8'b1000_0010;
-            7:      return 8'b1101_1000;
-            8:      return 8'b1000_0000;
-            9:      return 8'b1001_0000;
-            default:return 8'b1111_1111;
+            4'd0: return 8'b1100_0000;
+            4'd1: return 8'b1111_1001;
+            4'd2: return 8'b1010_0100;
+            4'd3: return 8'b1011_0000;
+            4'd4: return 8'b1001_1001;
+            4'd5: return 8'b1001_0010;
+            4'd6: return 8'b1000_0010;
+            4'd7: return 8'b1101_1000;
+            4'd8: return 8'b1000_0000;
+            4'd9: return 8'b1001_0000;
+            default: return 8'b1111_1111;
         endcase
     endfunction
-    
+
     task run(int repeat_counter);
+        transaction tr;
         repeat (repeat_counter) begin
-            Sb2Mon_mbox.put(fnd_tr);
-            if (bcd2seg(fnd_tr.PWDATA) == fnd_tr.fndFont) begin
+            Sb2Mon_mbox.get(tr);
+
+            expected_bcd = tr.PWDATA[3:0];  // 하위 4비트만 사용
+            expected_seg = bcd2seg(expected_bcd);
+
+            if (expected_seg == tr.fndFont) begin
+                tr.display("SB");
                 $display("PASS");
-            end
-            else begin
+            end else begin
+                tr.display("SB");
                 $display("FAIL");
             end
         end
-    endtask  //run
-endclass  //scoreboard
+    endtask
+endclass
+
 
 class monitor;
     mailbox #(transaction)      Sb2Mon_mbox;
@@ -156,12 +165,15 @@ class monitor;
 
     task run();
         forever begin
-            fnd_tr.PRDATA = fnd_interface.PRDATA;
+            wait (fnd_interface.PREADY == 1'b1);
+            @(posedge fnd_interface.PCLK);
+            @(posedge fnd_interface.PCLK);
+            fnd_tr = new();
+            fnd_tr.PWDATA = fnd_interface.PWDATA;
             fnd_tr.PREADY = fnd_interface.PREADY;
             fnd_tr.fndCom = fnd_interface.fndCom;
             fnd_tr.fndFont = fnd_interface.fndFont;
-            wait (fnd_interface.PREADY == 1'b1);
-            Gen2Drv_mbox.put(fnd_tr);
+            Sb2Mon_mbox.put(fnd_tr);
         end
     endtask  //run
 endclass  //monitor
@@ -177,6 +189,7 @@ class envirnment;
 
     function new(virtual APB_Slave_Interface fnd_interface);
         Gen2Drv_mbox = new();
+        Sb2Mon_mbox = new();
         this.fnd_gen = new(Gen2Drv_mbox, gen_next_event);
         this.fnd_drv = new(fnd_interface, Gen2Drv_mbox, gen_next_event);
         this.fnd_sb = new(Sb2Mon_mbox);
@@ -187,6 +200,9 @@ class envirnment;
         fork
             fnd_gen.run(count);
             fnd_drv.run();
+        join_none
+        ;
+        fork
             fnd_mon.run();
             fnd_sb.run(count);
         join_any
@@ -231,3 +247,4 @@ module tb_top ();
         $finish;
     end
 endmodule
+*/
