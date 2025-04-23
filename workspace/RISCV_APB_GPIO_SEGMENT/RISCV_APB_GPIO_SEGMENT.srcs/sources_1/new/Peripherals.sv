@@ -104,7 +104,7 @@ module Ultrasonic_IP (
     clock_divider #(
         .FCOUNT(50_000_000)
     ) U_0_5sec (
-        .clk  (PPCLK),
+        .clk  (PCLK),
         .rst  (PRESET),
         .o_clk(o_PCLK)
     );
