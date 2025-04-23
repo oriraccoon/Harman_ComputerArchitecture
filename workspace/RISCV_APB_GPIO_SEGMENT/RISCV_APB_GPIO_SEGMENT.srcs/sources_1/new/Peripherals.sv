@@ -1,6 +1,6 @@
 `timescale 1ns / 1ps
 
-module Stopwatch_Periph (
+module Ultrasonic_Periph (
     // global signal
     input  logic        PCLK,
     input  logic        PRESET,
@@ -12,38 +12,35 @@ module Stopwatch_Periph (
     input  logic        PSEL,
     output logic [31:0] PRDATA,
     output logic        PREADY,
-    // inport signals
-    output logic [ 3:0] fndCom,
-    output logic [ 7:0] fndFont
+    input  logic        echo,
+    output logic        trig
 );
 
-    logic       fcr;
-    logic [13:0] fdr;
+    logic [$clog2(400)-1:0] idr;
 
-    APB_SlaveIntf_FndDontroller U_APB_IntfO (.*);
-    FndController U_FND (.*);
+    APB_SlaveIntf_Ultrasonic U_APB_IntfO_Ultrasonic (.*);
+    Ultrasonic_IP U_Ultrasonic (.*);
+
 endmodule
 
-module APB_SlaveIntf_Stopwatch (
+module APB_SlaveIntf_Ultrasonic (
     // global signal
-    input  logic        PCLK,
-    input  logic        PRESET,
+    input  logic                   PCLK,
+    input  logic                   PRESET,
     // APB Interface Signals
-    input  logic [ 3:0] PADDR,
-    input  logic [31:0] PWDATA,
-    input  logic        PWRITE,
-    input  logic        PENABLE,
-    input  logic        PSEL,
-    output logic [31:0] PRDATA,
-    output logic        PREADY,
+    input  logic [            3:0] PADDR,
+    input  logic [           31:0] PWDATA,
+    input  logic                   PWRITE,
+    input  logic                   PENABLE,
+    input  logic                   PSEL,
+    output logic [           31:0] PRDATA,
+    output logic                   PREADY,
     // internal signals
-    output logic        fcr,
-    output logic [13:0] fdr
+    input  logic [$clog2(400)-1:0] idr
 );
     logic [31:0] slv_reg0, slv_reg1;  //, slv_reg2, slv_reg3;
 
-    assign fcr = slv_reg0[0];
-    assign fdr = slv_reg1[13:0];
+    assign slv_reg0[$clog2(400)-1:0] = idr;
 
     always_ff @(posedge PCLK, posedge PRESET) begin
         if (PRESET) begin
@@ -78,84 +75,114 @@ module APB_SlaveIntf_Stopwatch (
 
 endmodule
 
-module Stopwatch_IP (
-    input logic PCLK,
-    input logic PRESET,
-    input logic fcr,
-    input logic [13:0] fdr,
-    output logic [3:0] fndCom,
-    output logic [7:0] fndFont
+module Ultrasonic_IP (
+    input  logic                   PCLK,
+    input  logic                   PRESET,
+    output logic [$clog2(400)-1:0] idr,
+    input  logic                   echo,
+    output logic                   trig
 );
 
-    logic o_clk;
-    logic [3:0] digit1000, digit100, digit10, digit1;
+    typedef enum {
+        IDLE,
+        START,
+        HIGH_COUNT,
+        DIST
+    } state_e;
+
+    state_e state, next;
+    logic sec_reg, sec_next;
+    logic prev_echo, sync_prev_echo;
+    logic [$clog2(1000)-1:0] PCLK_count, PCLK_count_next;
+    logic trig_reg, trig_next;
+    logic [$clog2(23200)-1:0] dist_reg, dist_next;
+    logic [$clog2(400)-1:0] centi_reg, centi_next;
+    logic o_PCLK;
+
+    assign idr = centi_reg;  // input
 
     clock_divider #(
-        .FCOUNT(100_000)
-    ) U_1khz (
-        .clk  (PCLK),
+        .FCOUNT(50_000_000)
+    ) U_0_5sec (
+        .clk  (PPCLK),
         .rst  (PRESET),
-        .o_clk(o_clk)
+        .o_clk(o_PCLK)
     );
 
-    digit_spliter U_digit_Spliter(
-        .bcd(fdr),
-        .digit1000(digit1000),
-        .digit100(digit100),
-        .digit10(digit10),
-        .digit1(digit1)
-    );
-
-    function [6:0] bcd2seg(
-        input [3:0]bcd 
-    );
-        begin
-            case (bcd)
-                4'h0:  bcd2seg = 7'h40;
-                4'h1:  bcd2seg = 7'h79;
-                4'h2:  bcd2seg = 7'h24;
-                4'h3:  bcd2seg = 7'h30;
-                4'h4:  bcd2seg = 7'h19;
-                4'h5:  bcd2seg = 7'h12;
-                4'h6:  bcd2seg = 7'h02;
-                4'h7:  bcd2seg = 7'h78;
-                4'h8:  bcd2seg = 7'h00;
-                4'h9:  bcd2seg = 7'h10;
-                default: bcd2seg = 7'h7F;
-            endcase
+    always_ff @(posedge PCLK or posedge PRESET) begin
+        if (PRESET) begin
+            state <= IDLE;
+            prev_echo <= 0;
+            PCLK_count <= 0;
+            trig_reg <= 0;
+            dist_reg <= 0;
+            centi_reg <= 0;
+            sec_reg <= 0;
+        end else begin
+            state <= next;
+            prev_echo <= sync_prev_echo;
+            PCLK_count <= PCLK_count_next;
+            trig_reg <= trig_next;
+            dist_reg <= dist_next;
+            centi_reg <= centi_next;
+            sec_reg <= sec_next;
         end
-    endfunction
-
-    initial begin
-        fndCom = 4'b1110;
-        fndFont = 8'hFF;
     end
 
-    always_ff @( posedge o_clk ) begin
-        if (fcr) begin
-            case (fndCom)
-                4'b0111: begin
-                    fndCom <= 4'b1110;
-                    fndFont <= {1'b1,bcd2seg(digit1)};
+
+    assign trig = trig_reg;
+
+    always @(*) begin
+        next = state;
+        sync_prev_echo = prev_echo;
+        PCLK_count_next = PCLK_count;
+        trig_next = trig_reg;
+        dist_next = dist_reg;
+        centi_next = centi_reg;
+        sec_next = sec_reg;
+        case (state)
+            IDLE: begin
+                if (o_PCLK) sec_next = ~sec_next;
+                else if (sec_reg) begin
+                    next = START;
+                    sec_next = 0;
                 end
-                4'b1110: begin
-                    fndCom <= 4'b1101;
-                    fndFont <= {1'b1,bcd2seg(digit10)};
+            end
+            START: begin
+                PCLK_count_next = PCLK_count + 1;
+                trig_next = 1;
+                if (PCLK_count == 1000) begin
+                    trig_next = 0;
+                    next = HIGH_COUNT;
+                    PCLK_count_next = 0;
                 end
-                4'b1101: begin
-                    fndCom <= 4'b1011;
-                    fndFont <= {1'b0,bcd2seg(digit100)};
+            end
+            HIGH_COUNT: begin
+                if (~prev_echo & echo) begin
+                    dist_next = 0;
+                end else if (prev_echo & echo) begin
+                    PCLK_count_next = PCLK_count + 1;
+                    if (PCLK_count == 100) begin
+                        dist_next = dist_reg + 1;
+                        PCLK_count_next = 0;
+                    end
+                end else if (prev_echo & ~echo) begin
+                    next = DIST;
+                end else begin
+                    if (o_PCLK) begin
+                        dist_next = 0;
+                        next = DIST;
+                    end
                 end
-                4'b1011: begin
-                    fndCom <= 4'b0111;
-                    fndFont <= {1'b1,bcd2seg(digit1000)};
-                end
-                default: begin
-                    fndCom <= 4'b1110;
-                    fndFont <= 8'hFF;
-                end
-            endcase
-        end
+            end
+            DIST: begin
+                centi_next = dist_reg / 58;
+                next = IDLE;
+            end
+        endcase
+
+        sync_prev_echo = echo;
+
     end
 
 endmodule

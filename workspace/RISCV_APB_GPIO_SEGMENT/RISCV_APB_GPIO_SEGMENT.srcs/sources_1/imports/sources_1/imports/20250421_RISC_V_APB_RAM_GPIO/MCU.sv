@@ -8,7 +8,9 @@ module MCU (
     inout  logic [7:0] GPIOC,
     inout  logic [7:0] GPIOD,
     output logic [7:0] fndFont,
-    output logic [3:0] fndCom
+    output logic [3:0] fndCom,
+    output logic       trig,
+    input  logic       echo
 );
     // global signals
     logic        PCLK;
@@ -24,18 +26,21 @@ module MCU (
     logic        PSEL_GPIOC;
     logic        PSEL_GPIOD;
     logic        PSEL_FND;
+    logic        PSEL_ULTRA;
     logic [31:0] PRDATA_RAM;
     logic [31:0] PRDATA_GPO;
     logic [31:0] PRDATA_GPI;
     logic [31:0] PRDATA_GPIOC;
     logic [31:0] PRDATA_GPIOD;
     logic [31:0] PRDATA_FND;
+    logic [31:0] PRDATA_ULTRA;
     logic        PREADY_RAM;
     logic        PREADY_GPO;
     logic        PREADY_GPI;
     logic        PREADY_GPIOC;
     logic        PREADY_GPIOD;
     logic        PREADY_FND;
+    logic        PREADY_ULTRA;
 
     // CPU - APB_Master Signals
     // Internal Interface Signals
@@ -76,18 +81,21 @@ module MCU (
         .PSEL3  (PSEL_GPIOC),
         .PSEL4  (PSEL_GPIOD),
         .PSEL5  (PSEL_FND),
+        .PSEL6  (PSEL_ULTRA),
         .PRDATA0(PRDATA_RAM),
         .PRDATA1(PRDATA_GPO),
         .PRDATA2(PRDATA_GPI),
         .PRDATA3(PRDATA_GPIOC),
         .PRDATA4(PRDATA_GPIOD),
         .PRDATA5(PRDATA_FND),
+        .PRDATA6(PRDATA_ULTRA),
         .PREADY0(PREADY_RAM),
         .PREADY1(PREADY_GPO),
         .PREADY2(PREADY_GPI),
         .PREADY3(PREADY_GPIOC),
         .PREADY4(PREADY_GPIOD),
-        .PREADY5(PREADY_FND)
+        .PREADY5(PREADY_FND),
+        .PREADY6(PREADY_ULTRA)
     );
 
     ram U_RAM (
@@ -115,7 +123,7 @@ module MCU (
         .inPort(GPIB)
     );
 
-    GPIO_Periph U_GPIOC(
+    GPIO_Periph U_GPIOC (
         .*,
         .PSEL(PSEL_GPIOC),
         .PRDATA(PRDATA_GPIOC),
@@ -123,7 +131,7 @@ module MCU (
         .inOutPort(GPIOC)
     );
 
-     GPIO_Periph U_GPIOD(
+    GPIO_Periph U_GPIOD (
         .*,
         .PSEL(PSEL_GPIOD),
         .PRDATA(PRDATA_GPIOD),
@@ -131,12 +139,20 @@ module MCU (
         .inOutPort(GPIOD)
     );
 
-    FndController_Periph U_FndController_Periph(
+    FndController_Periph U_FndController_Periph (
         .*,
-        .PSEL(PSEL_FND),
+        .PSEL  (PSEL_FND),
         .PRDATA(PRDATA_FND),
         .PREADY(PREADY_FND)
     );
+
+    Ultrasonic_Periph U_Ultrasonic_Periph (
+        .*,
+        .PSEL  (PSEL_ULTRA),
+        .PRDATA(PRDATA_ULTRA),
+        .PREADY(PREADY_ULTRA)
+    );
+
 endmodule
 
 
