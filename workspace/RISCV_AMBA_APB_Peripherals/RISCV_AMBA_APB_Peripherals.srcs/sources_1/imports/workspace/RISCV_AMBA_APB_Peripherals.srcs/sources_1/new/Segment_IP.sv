@@ -128,36 +128,35 @@ module FndController (
         end
     endfunction
 
-    always_ff @(posedge PCLK or posedge PRESET) begin
-        if (PRESET) begin
-            fndCom  = 4'b1110;
-            fndFont = 8'hC0;
-        end
-        else begin
-            if (fcr) begin
-                case (fndCom)
-                    4'b0111: begin
-                        fndCom  <= 4'b1110;
-                        fndFont <= {~fpr[0], bcd2seg(digit1)};
-                    end
-                    4'b1110: begin
-                        fndCom  <= 4'b1101;
-                        fndFont <= {~fpr[1], bcd2seg(digit10)};
-                    end
-                    4'b1101: begin
-                        fndCom  <= 4'b1011;
-                        fndFont <= {~fpr[2], bcd2seg(digit100)};
-                    end
-                    4'b1011: begin
-                        fndCom  <= 4'b0111;
-                        fndFont <= {~fpr[3], bcd2seg(digit1000)};
-                    end
-                    default: begin
-                        fndCom  <= 4'b1110;
-                        fndFont <= 8'hC0;
-                    end
-                endcase
-            end
+    initial begin
+        fndCom  = 4'b1110;
+        fndFont = 8'hFF;
+    end
+
+    always_ff @(posedge o_clk) begin
+        if (fcr) begin
+            case (fndCom)
+                4'b0111: begin
+                    fndCom  <= 4'b1110;
+                    fndFont <= {~fpr[0], bcd2seg(digit1)};
+                end
+                4'b1110: begin
+                    fndCom  <= 4'b1101;
+                    fndFont <= {~fpr[1], bcd2seg(digit10)};
+                end
+                4'b1101: begin
+                    fndCom  <= 4'b1011;
+                    fndFont <= {~fpr[2], bcd2seg(digit100)};
+                end
+                4'b1011: begin
+                    fndCom  <= 4'b0111;
+                    fndFont <= {~fpr[3], bcd2seg(digit1000)};
+                end
+                default: begin
+                    fndCom  <= 4'b1110;
+                    fndFont <= 8'hFF;
+                end
+            endcase
         end
     end
 
