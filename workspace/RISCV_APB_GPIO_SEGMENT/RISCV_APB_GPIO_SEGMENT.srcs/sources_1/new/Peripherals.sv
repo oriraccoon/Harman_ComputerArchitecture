@@ -16,7 +16,8 @@ module Ultrasonic_Periph (
     output logic        trig
 );
 
-    logic [$clog2(400)-1:0] idr;
+    logic                   ucr;
+    logic [$clog2(400)-1:0] udr;
 
     APB_SlaveIntf_Ultrasonic U_APB_IntfO_Ultrasonic (.*);
     Ultrasonic_IP U_Ultrasonic (.*);
@@ -36,16 +37,18 @@ module APB_SlaveIntf_Ultrasonic (
     output logic [           31:0] PRDATA,
     output logic                   PREADY,
     // internal signals
-    input  logic [$clog2(400)-1:0] idr
+    input  logic [$clog2(400)-1:0] udr,
+    output logic                   ucr
 );
     logic [31:0] slv_reg0, slv_reg1;  //, slv_reg2, slv_reg3;
 
-    assign slv_reg0[$clog2(400)-1:0] = idr;
+    assign ucr = slv_reg0[0];
+    assign slv_reg1[$clog2(400)-1:0] = udr;
 
     always_ff @(posedge PCLK, posedge PRESET) begin
         if (PRESET) begin
             slv_reg0 <= 0;
-            slv_reg1 <= 0;
+            // slv_reg1 <= 0;
             // slv_reg2 <= 0;
             // slv_reg3 <= 0;
         end else begin
@@ -54,7 +57,7 @@ module APB_SlaveIntf_Ultrasonic (
                 if (PWRITE) begin
                     case (PADDR[3:2])
                         2'd0: slv_reg0 <= PWDATA;
-                        2'd1: slv_reg1 <= PWDATA;
+                        // 2'd1: slv_reg1 <= PWDATA;
                         // 2'd2: slv_reg2 <= PWDATA;
                         // 2'd3: slv_reg3 <= PWDATA;
                     endcase
@@ -78,7 +81,8 @@ endmodule
 module Ultrasonic_IP (
     input  logic                   PCLK,
     input  logic                   PRESET,
-    output logic [$clog2(400)-1:0] idr,
+    input  logic                   ucr,
+    output logic [$clog2(400)-1:0] udr,
     input  logic                   echo,
     output logic                   trig
 );
@@ -91,7 +95,7 @@ module Ultrasonic_IP (
     } state_e;
 
     state_e state, next;
-    logic sec_reg, sec_next;
+    logic [$clog2(10_000_000)-1:0] sec_reg;
     logic prev_echo, sync_prev_echo;
     logic [$clog2(1000)-1:0] PCLK_count, PCLK_count_next;
     logic trig_reg, trig_next;
@@ -99,7 +103,7 @@ module Ultrasonic_IP (
     logic [$clog2(400)-1:0] centi_reg, centi_next;
     logic o_PCLK;
 
-    assign idr = centi_reg;  // input
+    assign udr = centi_reg;  // input
 
     clock_divider #(
         .FCOUNT(50_000_000)
@@ -117,7 +121,6 @@ module Ultrasonic_IP (
             trig_reg <= 0;
             dist_reg <= 0;
             centi_reg <= 0;
-            sec_reg <= 0;
         end else begin
             state <= next;
             prev_echo <= sync_prev_echo;
@@ -125,7 +128,6 @@ module Ultrasonic_IP (
             trig_reg <= trig_next;
             dist_reg <= dist_next;
             centi_reg <= centi_next;
-            sec_reg <= sec_next;
         end
     end
 
@@ -139,13 +141,10 @@ module Ultrasonic_IP (
         trig_next = trig_reg;
         dist_next = dist_reg;
         centi_next = centi_reg;
-        sec_next = sec_reg;
         case (state)
             IDLE: begin
-                if (o_PCLK) sec_next = ~sec_next;
-                else if (sec_reg) begin
+                if (ucr) begin
                     next = START;
-                    sec_next = 0;
                 end
             end
             START: begin

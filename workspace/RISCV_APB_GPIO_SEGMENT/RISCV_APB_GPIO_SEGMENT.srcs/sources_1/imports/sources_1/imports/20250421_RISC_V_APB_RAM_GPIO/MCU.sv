@@ -10,7 +10,8 @@ module MCU (
     output logic [7:0] fndFont,
     output logic [3:0] fndCom,
     output logic       trig,
-    input  logic       echo
+    input  logic       echo,
+    inout  logic       dht_io
 );
     // global signals
     logic        PCLK;
@@ -27,6 +28,7 @@ module MCU (
     logic        PSEL_GPIOD;
     logic        PSEL_FND;
     logic        PSEL_ULTRA;
+    logic        PSEL_DHT;
     logic [31:0] PRDATA_RAM;
     logic [31:0] PRDATA_GPO;
     logic [31:0] PRDATA_GPI;
@@ -34,6 +36,7 @@ module MCU (
     logic [31:0] PRDATA_GPIOD;
     logic [31:0] PRDATA_FND;
     logic [31:0] PRDATA_ULTRA;
+    logic [31:0] PRDATA_DHT;
     logic        PREADY_RAM;
     logic        PREADY_GPO;
     logic        PREADY_GPI;
@@ -41,6 +44,7 @@ module MCU (
     logic        PREADY_GPIOD;
     logic        PREADY_FND;
     logic        PREADY_ULTRA;
+    logic        PREADY_DHT;
 
     // CPU - APB_Master Signals
     // Internal Interface Signals
@@ -82,6 +86,7 @@ module MCU (
         .PSEL4  (PSEL_GPIOD),
         .PSEL5  (PSEL_FND),
         .PSEL6  (PSEL_ULTRA),
+        .PSEL7  (PSEL_DHT),
         .PRDATA0(PRDATA_RAM),
         .PRDATA1(PRDATA_GPO),
         .PRDATA2(PRDATA_GPI),
@@ -89,13 +94,15 @@ module MCU (
         .PRDATA4(PRDATA_GPIOD),
         .PRDATA5(PRDATA_FND),
         .PRDATA6(PRDATA_ULTRA),
+        .PRDATA7(PRDATA_DHT),
         .PREADY0(PREADY_RAM),
         .PREADY1(PREADY_GPO),
         .PREADY2(PREADY_GPI),
         .PREADY3(PREADY_GPIOC),
         .PREADY4(PREADY_GPIOD),
         .PREADY5(PREADY_FND),
-        .PREADY6(PREADY_ULTRA)
+        .PREADY6(PREADY_ULTRA),
+        .PREADY7(PREADY_DHT)
     );
 
     ram U_RAM (
@@ -150,7 +157,17 @@ module MCU (
         .*,
         .PSEL  (PSEL_ULTRA),
         .PRDATA(PRDATA_ULTRA),
-        .PREADY(PREADY_ULTRA)
+        .PREADY(PREADY_ULTRA),
+        .echo(echo),
+        .trig(trig)
+    );
+
+    Humidity_Periph U_Humidity_Periph (
+        .*,
+        .PSEL  (PSEL_DHT),
+        .PRDATA(PRDATA_DHT),
+        .PREADY(PREADY_DHT),
+        .dht_io(dht_io)
     );
 
 endmodule

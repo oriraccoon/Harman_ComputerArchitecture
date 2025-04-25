@@ -128,7 +128,7 @@ module FndController (
         end
     endfunction
 
-    always_ff @(posedge PCLK or posedge PRESET) begin
+    always_ff @(posedge o_clk or posedge PRESET) begin
         if (PRESET) begin
             fndCom  = 4'b1110;
             fndFont = 8'hC0;
