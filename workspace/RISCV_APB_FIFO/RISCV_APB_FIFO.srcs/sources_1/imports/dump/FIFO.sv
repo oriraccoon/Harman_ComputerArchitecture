@@ -57,7 +57,7 @@ module APB_SlaveIntf_FIFO (
     input  logic [ 7:0] frdr
 );
 
-    logic [31:0] slv_reg0, slv_reg1, slv_reg2;  //, slv_reg3;
+    logic [31:0] slv_reg0, slv_reg1, slv_reg2, slv_next0, slv_next1, slv_next2;  //, slv_reg3;
     logic wr_en, rd_en;
 
     assign slv_reg0[1:0] = {full, empty};
@@ -83,9 +83,12 @@ module APB_SlaveIntf_FIFO (
         end
         else begin
             state <= next;
+            // slv_next0 <= 0;
+            slv_next1 <= 0;
+            // slv_next2 <= 0;
+            // slv_next3 <= 0;
             if(PSEL && PENABLE) PREADY <= 1'b1;
             else PREADY <= 1'b0;
-            
         end
     end
 
@@ -112,7 +115,7 @@ module APB_SlaveIntf_FIFO (
                 wr_en = 1'b1;
                 case (PADDR[3:2])
                     // 2'd0: slv_reg0 <= PWDATA;
-                    2'd1: slv_reg1 = PWDATA;
+                    2'd1: slv_next1 = PWDATA;
                     // 2'd2: slv_reg2 <= PWDATA;
                     // 2'd3: slv_reg3 <= PWDATA;
                 endcase
