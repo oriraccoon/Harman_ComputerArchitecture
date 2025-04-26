@@ -50,14 +50,15 @@ module APB_SlaveIntf_FIFO (
     output logic [31:0] PRDATA,
     output logic        PREADY,
     // internal signals
+    output logic [ 1:0] en,
+
     input  logic        full,
     input  logic        empty,
-    output logic [ 1:0] en,
     output logic [ 7:0] fwdr,
     input  logic [ 7:0] frdr
 );
 
-    logic [31:0] slv_reg0, slv_reg1, slv_reg2, slv_next0, slv_next1, slv_next2;  //, slv_reg3;
+    logic [31:0] slv_reg0, slv_reg1, slv_reg2;  //, slv_reg3;
     logic wr_en, rd_en;
 
     assign slv_reg0[1:0] = {full, empty};
@@ -82,13 +83,42 @@ module APB_SlaveIntf_FIFO (
             // slv_reg3 <= 0;
         end
         else begin
+            case (state)
+                IDLE: begin
+                    wr_en <= 1'b0;
+                    rd_en <= 1'b0;
+                    if(PSEL && PENABLE) begin
+                        PREADY <= 1'b1;
+                        if(~empty && ~PWRITE) begin
+                            rd_en <= 1'b1;
+                            PRDATA <= 32'bx;
+                            case (PADDR[3:2])
+                                2'd0: PRDATA <= slv_reg0;
+                                2'd1: PRDATA <= slv_reg1;
+                                2'd2: PRDATA <= slv_reg2;
+                                // 2'd3: PRDATA <= slv_reg3;
+                            endcase
+                        end
+                        else if (~full && PWRITE) begin
+                            wr_en <= 1'b1;
+                            case (PADDR[3:2])
+                                // 2'd0: slv_reg0 <= PWDATA;
+                                2'd1: slv_reg1 <= PWDATA;
+                                // 2'd2: slv_reg2 <= PWDATA;
+                                // 2'd3: slv_reg3 <= PWDATA;
+                            endcase
+                        end
+                    end
+                    else PREADY <= 1'b0; 
+                end
+                READ: begin
+                    rd_en <= 1'b0;
+                end
+                WRITE: begin
+                    wr_en <= 1'b0;
+                end
+            endcase
             state <= next;
-            // slv_next0 <= 0;
-            slv_next1 <= 0;
-            // slv_next2 <= 0;
-            // slv_next3 <= 0;
-            if(PSEL && PENABLE) PREADY <= 1'b1;
-            else PREADY <= 1'b0;
         end
     end
 
@@ -96,45 +126,16 @@ module APB_SlaveIntf_FIFO (
         case (state)
             IDLE: begin
                 if(PSEL && PENABLE) begin
-                    if (~full && PWRITE) begin
-                        next = WRITE;
-                    end
-                    else if(~empty && ~PWRITE) begin
+                    if(~empty && ~PWRITE) begin
                         next = READ;
+                    end
+                    else if (~full && PWRITE) begin
+                        next = WRITE;
                     end
                 end
             end
             READ: next = IDLE;
             WRITE: next = IDLE;
-        endcase
-    end
-
-    always_comb begin
-        case (state)
-            READ: begin
-                wr_en = 1'b1;
-                case (PADDR[3:2])
-                    // 2'd0: slv_reg0 <= PWDATA;
-                    2'd1: slv_next1 = PWDATA;
-                    // 2'd2: slv_reg2 <= PWDATA;
-                    // 2'd3: slv_reg3 <= PWDATA;
-                endcase
-            end
-            WRITE: begin
-                rd_en = 1'b1;
-                PRDATA <= 32'bx;
-                case (PADDR[3:2])
-                    2'd0: PRDATA = slv_reg0;
-                    2'd1: PRDATA = slv_reg1;
-                    2'd2: PRDATA = slv_reg2;
-                    // 2'd3: PRDATA <= slv_reg3;
-                endcase
-            end
-            default: begin
-                wr_en = 1'b0;
-                rd_en = 1'b0;
-                PRDATA = 32'bx;
-            end
         endcase
     end
 
@@ -177,7 +178,7 @@ module fifo_ram (
     output logic [7:0] rdata
 );
 
-    logic [31:0] mem[0:2**2-1];
+    logic [7:0] mem[0:2**2-1];
 
     always_ff @(posedge clk) begin
         if (wr_en) begin
