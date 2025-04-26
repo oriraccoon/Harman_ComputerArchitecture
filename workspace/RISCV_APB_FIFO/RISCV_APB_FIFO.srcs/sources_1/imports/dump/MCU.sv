@@ -3,15 +3,14 @@
 module MCU (
     input  logic       clk,
     input  logic       reset,
-    output logic [7:0] GPOA,
-    input  logic [7:0] GPIB,
     inout  logic [7:0] GPIOC,
     inout  logic [7:0] GPIOD,
     output logic [7:0] fndFont,
     output logic [3:0] fndCom,
     output logic       trig,
     input  logic       echo,
-    inout  logic       dht_io
+    inout  logic       dht_io,
+    output logic       led
 );
     // global signals
     logic        PCLK;
@@ -22,29 +21,32 @@ module MCU (
     logic        PWRITE;
     logic        PENABLE;
     logic        PSEL_RAM;
-    logic        PSEL_GPO;
-    logic        PSEL_GPI;
+    logic        PSEL_1;
+    logic        PSEL_2;
     logic        PSEL_GPIOC;
     logic        PSEL_GPIOD;
     logic        PSEL_FND;
     logic        PSEL_ULTRA;
     logic        PSEL_DHT;
+    logic        PSEL_BLINK;
     logic [31:0] PRDATA_RAM;
-    logic [31:0] PRDATA_GPO;
-    logic [31:0] PRDATA_GPI;
+    logic [31:0] PRDATA_1;
+    logic [31:0] PRDATA_2;
     logic [31:0] PRDATA_GPIOC;
     logic [31:0] PRDATA_GPIOD;
     logic [31:0] PRDATA_FND;
     logic [31:0] PRDATA_ULTRA;
     logic [31:0] PRDATA_DHT;
+    logic [31:0] PRDATA_BLINK;
     logic        PREADY_RAM;
-    logic        PREADY_GPO;
-    logic        PREADY_GPI;
+    logic        PREADY_1;
+    logic        PREADY_2;
     logic        PREADY_GPIOC;
     logic        PREADY_GPIOD;
     logic        PREADY_FND;
     logic        PREADY_ULTRA;
     logic        PREADY_DHT;
+    logic        PREADY_BLINK;
 
     // CPU - APB_Master Signals
     // Internal Interface Signals
@@ -80,29 +82,32 @@ module MCU (
     APB_Master U_APB_Master (
         .*,
         .PSEL0  (PSEL_RAM),
-        .PSEL1  (PSEL_GPO),
-        .PSEL2  (PSEL_GPI),
+        .PSEL1  (PSEL_1),
+        .PSEL2  (PSEL_2),
         .PSEL3  (PSEL_GPIOC),
         .PSEL4  (PSEL_GPIOD),
         .PSEL5  (PSEL_FND),
         .PSEL6  (PSEL_ULTRA),
         .PSEL7  (PSEL_DHT),
+        .PSEL8  (PSEL_BLINK),
         .PRDATA0(PRDATA_RAM),
-        .PRDATA1(PRDATA_GPO),
-        .PRDATA2(PRDATA_GPI),
+        .PRDATA1(PRDATA_1),
+        .PRDATA2(PRDATA_2),
         .PRDATA3(PRDATA_GPIOC),
         .PRDATA4(PRDATA_GPIOD),
         .PRDATA5(PRDATA_FND),
         .PRDATA6(PRDATA_ULTRA),
         .PRDATA7(PRDATA_DHT),
+        .PRDATA8(PRDATA_BLINK),
         .PREADY0(PREADY_RAM),
-        .PREADY1(PREADY_GPO),
-        .PREADY2(PREADY_GPI),
+        .PREADY1(PREADY_1),
+        .PREADY2(PREADY_2),
         .PREADY3(PREADY_GPIOC),
         .PREADY4(PREADY_GPIOD),
         .PREADY5(PREADY_FND),
         .PREADY6(PREADY_ULTRA),
-        .PREADY7(PREADY_DHT)
+        .PREADY7(PREADY_DHT),
+        .PREADY8(PREADY_BLINK)
     );
 
     ram U_RAM (
@@ -110,24 +115,6 @@ module MCU (
         .PSEL  (PSEL_RAM),
         .PRDATA(PRDATA_RAM),
         .PREADY(PREADY_RAM)
-    );
-
-    GPO_Periph U_GPOA (
-        .*,
-        .PSEL   (PSEL_GPO),
-        .PRDATA (PRDATA_GPO),
-        .PREADY (PREADY_GPO),
-        // export signals
-        .outPort(GPOA)
-    );
-
-    GPI_Periph U_GPIB (
-        .*,
-        .PSEL  (PSEL_GPI),
-        .PRDATA(PRDATA_GPI),
-        .PREADY(PREADY_GPI),
-        // inport signals
-        .inPort(GPIB)
     );
 
     GPIO_Periph U_GPIOC (
@@ -168,6 +155,14 @@ module MCU (
         .PRDATA(PRDATA_DHT),
         .PREADY(PREADY_DHT),
         .dht_io(dht_io)
+    );
+
+    blink_Periph U_blink_Periph (
+        .*,
+        .PSEL  (PSEL_BLINK),
+        .PRDATA(PRDATA_BLINK),
+        .PREADY(PREADY_BLINK),
+        .led(led)
     );
 
 endmodule

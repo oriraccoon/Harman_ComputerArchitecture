@@ -1,50 +1,73 @@
 `timescale 1ns / 1ps
 
-module PWM(
-    input clk,
-    input reset,
+module PWM (
+    input logic clk,
+    input logic reset,
     input logic [7:0] duty_rate,
     output logic led
-    );
+);
 
-    parameter SYS_CLK = 100_000_000, CUSTOM_CLK = 100;
+    parameter SYS_CLK = 100_000_000, PWM_FREQ = 1000, PWM_COUNTER_MAX = 255;
+
     logic c_clk;
+
     clock_divider #(
-        .FCOUNT(duty_rate * 1_000_000)
-    ) U_1khz (
-        .clk  (PCLK),
-        .rst  (PRESET),
-        .o_clk(o_clk)
+        .FCOUNT(SYS_CLK / PWM_FREQ)
+    ) U_divider (
+        .clk  (clk),
+        .rst  (reset),
+        .o_clk(c_clk)
     );
 
+    logic [7:0] counter;
+
+    always_ff @(posedge c_clk or posedge reset) begin
+        if (reset) begin
+            counter <= 0;
+        end
+        else begin
+            counter <= counter + 1;
+        end
+    end
+
+    always_comb begin
+        if (duty_rate == 0) begin
+            led = 1;
+        end
+        else if (counter < duty_rate) begin
+            led = 1;
+        end
+        else begin
+            led = 0;
+        end
+    end
 
 endmodule
 
+
 module clock_divider #(
-    parameter FCOUNT = 100_000_000
-) (
-    input  clk,
-    input  rst,
-    output o_clk
+    parameter FCOUNT = 100_000
+)(
+    input logic clk,
+    input logic rst,
+    output logic o_clk
 );
+    logic [$clog2(FCOUNT/2)-1:0] count;
 
-    reg [$clog2(FCOUNT)-1:0] r_counter;
-    reg r_clk;
-
-    assign o_clk = r_clk;
-
-    always @(posedge clk, posedge rst) begin
+    always_ff @(posedge clk or posedge rst) begin
         if (rst) begin
-            r_counter <= 0;
-            r_clk <= 1'b0;
-        end else begin
-            if (r_counter == FCOUNT - 1) begin  // 1Hz
-                r_counter <= 0;
-                r_clk <= 1;
-            end else begin
-                r_counter <= r_counter + 1;
-                r_clk <= 1'b0;
+            count <= 0;
+            o_clk <= 0;
+        end
+        else begin
+            if (count == FCOUNT/2 - 1) begin
+                o_clk <= ~o_clk;
+                count <= 0;
+            end
+            else begin
+                count <= count + 1;
             end
         end
     end
 endmodule
+

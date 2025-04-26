@@ -163,29 +163,26 @@ module FndController (
 endmodule
 
 module clock_divider #(
-    parameter FCOUNT = 100_000_000
-) (
-    input  clk,
-    input  rst,
-    output o_clk
+    parameter FCOUNT = 100_000
+)(
+    input logic clk,
+    input logic rst,
+    output logic o_clk
 );
+    logic [$clog2(FCOUNT/2)-1:0] count;
 
-    reg [$clog2(FCOUNT)-1:0] r_counter;
-    reg r_clk;
-
-    assign o_clk = r_clk;
-
-    always @(posedge clk, posedge rst) begin
+    always_ff @(posedge clk or posedge rst) begin
         if (rst) begin
-            r_counter <= 0;
-            r_clk <= 1'b0;
-        end else begin
-            if (r_counter == FCOUNT - 1) begin  // 1Hz
-                r_counter <= 0;
-                r_clk <= 1;
-            end else begin
-                r_counter <= r_counter + 1;
-                r_clk <= 1'b0;
+            count <= 0;
+            o_clk <= 0;
+        end
+        else begin
+            if (count == FCOUNT/2 - 1) begin
+                o_clk <= ~o_clk;
+                count <= 0;
+            end
+            else begin
+                count <= count + 1;
             end
         end
     end
