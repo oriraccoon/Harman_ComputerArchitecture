@@ -35,9 +35,6 @@ module FIFO_Periph (
         .empty(empty)
     );
 
-
-    
-
 endmodule
 
 module APB_SlaveIntf_FIFO (

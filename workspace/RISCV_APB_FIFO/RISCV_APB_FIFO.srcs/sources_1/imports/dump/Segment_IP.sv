@@ -169,7 +169,7 @@ module clock_divider #(
     input logic rst,
     output logic o_clk
 );
-    logic [$clog2(FCOUNT/2)-1:0] count;
+    logic [$clog2(FCOUNT)-1:0] count;
 
     always_ff @(posedge clk or posedge rst) begin
         if (rst) begin
@@ -177,12 +177,13 @@ module clock_divider #(
             o_clk <= 0;
         end
         else begin
-            if (count == FCOUNT/2 - 1) begin
-                o_clk <= ~o_clk;
+            if (count == FCOUNT - 1) begin
+                o_clk <= 1;
                 count <= 0;
             end
             else begin
                 count <= count + 1;
+                o_clk <= 0;
             end
         end
     end

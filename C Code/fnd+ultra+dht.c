@@ -30,6 +30,10 @@ typedef struct {
 } ULTRA_TypeDef;
 
 typedef struct {
+    __IO uint32_t BDR;
+} BLINK_TypeDef;
+
+typedef struct {
     __IO uint32_t DDR;
     __IO uint32_t DMR;
 } DHT_TypeDef;
@@ -42,6 +46,7 @@ typedef struct {
 #define FND_BASEADDR    (APB_BASEADDR + 0x5000)
 #define ULTRA_BASEADDR    (APB_BASEADDR + 0x6000)
 #define DHT_BASEADDR    (APB_BASEADDR + 0x7000)
+#define BLINK_BASEADDR    (APB_BASEADDR + 0x8000)
 
 #define GPOA            ((GPO_TypeDef *) GPOA_BASEADDR)
 #define GPIB            ((GPI_TypeDef *) GPIB_BASEADDR)
@@ -50,6 +55,7 @@ typedef struct {
 #define FND             ((FND_TypeDef *) FND_BASEADDR)
 #define ULTRA           ((ULTRA_TypeDef *) ULTRA_BASEADDR)
 #define DHT             ((DHT_TypeDef *) DHT_BASEADDR)
+#define BLINK           ((BLINK_TypeDef *) BLINK_BASEADDR)
 
 #define GPOA_MODER      *(uint32_t *)(GPOA_BASEADDR + 0x00)
 #define GPOA_ODR        *(uint32_t *)(GPOA_BASEADDR + 0x04)
@@ -84,6 +90,7 @@ uint32_t Ultra_read(ULTRA_TypeDef *ultra);
 void DHT_init(DHT_TypeDef *dht, uint32_t moder);
 uint32_t DHT_read(DHT_TypeDef *dht);
 
+void BLINK_init(BLINK_TypeDef *blink, uint32_t duty_rate);
 
 int main(){
     // GPOA_MODER = 0xff;
@@ -132,6 +139,7 @@ int main(){
                 distance = Ultra_read(ULTRA);
                 FND_writeData(FND, distance);
                 Ultra_init(ULTRA, POWER_OFF);
+                BLINK_init(BLINK, distance);
                 break;
             case (1 << 5):
                 DHT_init(DHT, TEMPERATURE);
@@ -208,4 +216,8 @@ void DHT_init(DHT_TypeDef *dht, uint32_t moder)
 uint32_t DHT_read(DHT_TypeDef *dht)
 {
     return dht->DDR;
+}
+void BLINK_init(BLINK_TypeDef *blink, uint32_t duty_rate)
+{
+    blink->BDR = duty_rate;
 }
