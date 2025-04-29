@@ -76,7 +76,7 @@ typedef struct {
 
 void delay(int n);
 void DOT3_Timer(uint32_t *DOT3, uint32_t *btn_flag2);
-void led_blink_Timer(uint32_t* btn, uint32_t *btn_flag, uint32_t *led1, uint32_t *led2, uint32_t *led4, uint32_t *led8);
+void led_blink_Timer();
 
 
 void LED_init(GPIO_TypeDef *GPIOx);
@@ -105,28 +105,26 @@ void Timer_write_psc(TIMER_TypeDef *timerx, uint32_t psc);
 void Timer_write_arr(TIMER_TypeDef *timerx, uint32_t arr);
 uint32_t Timer_read(TIMER_TypeDef *timerx);
 
-
+uint32_t temp = 0;
+uint32_t one = 1;
+uint32_t time_interval = 0;
+uint32_t distance = 0;
+uint32_t temperature = 0;
+uint32_t humidity = 0;
+uint32_t led1 = (1<<0);
+uint32_t led16 = (1<<4);
+uint32_t btn = 0;
+uint32_t btn_flag = 0;
+uint32_t btn_flag2 = 0;
+uint32_t DOT4 = (1<<3);
+uint32_t DOT3 = (1<<2);
+uint32_t DOT2 = (1<<1);
+uint32_t DOT1 = (1<<0);
+uint32_t led_left = (1<<1);
+uint32_t led_right = (1<<2);
+uint32_t led_emer = (1<<3);
 
 int main(){
-
-    uint32_t temp = 0;
-    uint32_t one = 1;
-    uint32_t time_interval = 0;
-    uint32_t distance = 0;
-    uint32_t temperature = 0;
-    uint32_t humidity = 0;
-    uint32_t led1 = (1<<0);
-    uint32_t led2 = (1<<1);
-    uint32_t led4 = (1<<2);
-    uint32_t led8 = (1<<3);
-    uint32_t led16 = (1<<4);
-    uint32_t btn = 0;
-    uint32_t btn_flag = 0;
-    uint32_t btn_flag2 = 0;
-    uint32_t DOT4 = (1<<3);
-    uint32_t DOT3 = (1<<2);
-    uint32_t DOT2 = (1<<1);
-    uint32_t DOT1 = (1<<0);
 
     LED_init(GPIOC);
 
@@ -136,20 +134,23 @@ int main(){
     FND_init(FND, POWER_ON);
     FND_writeDot(FND, 0);
     FND_writeData(FND, 0);
-
+    Ultra_init(ULTRA, POWER_ON);
 
     Timer_write_psc(TIMER, ((F_CPU/10)-1));
     Timer_write_psc(TIMER2, ((F_CPU/10)-1));
+    Timer_write_arr(TIMER, 5-1);
     Timer_write_arr(TIMER2, 5-1);
     Timer_start(TIMER2);
-    // led_blink_Timer(&btn, &btn_flag, &led1, &led2, &led4, &led8);
     
     
-
     while(1)
     {
         DOT3_Timer(&DOT3, &btn_flag2);
-        
+        led_blink_Timer();
+
+        distance = Ultra_read(ULTRA);
+        BLINK_init(BLINK, distance);
+
         switch(Switch_read(GPIOD))
         {
             case 0x00:
@@ -165,21 +166,17 @@ int main(){
                 delay(100);
                 break;
             case (1 << 6):
-                Ultra_init(ULTRA, POWER_ON);
-                delay(1000);
-                distance = Ultra_read(ULTRA);
                 FND_writeData(FND, distance);
-                BLINK_init(BLINK, distance);
                 break;
             case (1 << 5):
                 DHT_init(DHT, TEMPERATURE);
-                delay(1000);
+                delay(100);
                 temperature = DHT_read(DHT);
                 FND_writeData(FND, temperature);
                 break;
             case (1 << 4):
                 DHT_init(DHT, HUMIDITY);
-                delay(1000);
+                delay(100);
                 humidity = DHT_read(DHT);
                 FND_writeData(FND, humidity);
                 break;
@@ -210,53 +207,43 @@ void DOT3_Timer(uint32_t *DOT3, uint32_t *btn_flag2){
     FND_writeDot(FND, *DOT3);
 }
 
-void led_blink_Timer(uint32_t* btn, uint32_t *btn_flag, uint32_t *led1, uint32_t *led2, uint32_t *led4, uint32_t *led8){
+void led_blink_Timer(){
     switch(Switch_read(GPIOB))
         {
-            case (1<<4): Timer_clear(TIMER); Timer_write_arr(TIMER, 2-1); Timer_start(TIMER);
-                         *btn = (1<<4);
+            case (1<<5): Timer_clear(TIMER);Timer_start(TIMER);
+                         btn = (1<<5);
                          break;
-            case (1<<5): Timer_clear(TIMER); Timer_write_arr(TIMER, 5-1); Timer_start(TIMER);
-                         *btn = (1<<5);
+            case (1<<6): Timer_clear(TIMER);Timer_start(TIMER);
+                         btn = (1<<6);
                          break;
-            case (1<<6): Timer_clear(TIMER); Timer_write_arr(TIMER, 10-1); Timer_start(TIMER);
-                         *btn = (1<<6);
-                         break;
-            case (1<<7): Timer_clear(TIMER); Timer_write_arr(TIMER, 15-1); Timer_start(TIMER);
-                         *btn = (1<<7);
+            case (1<<7): Timer_clear(TIMER);Timer_start(TIMER);
+                         btn = (1<<5) | (1<<6);
                          break;
         }
 
 
-        switch(*btn)
+        switch(btn)
         {
-            case (1<<4): if((Timer_read(TIMER) == 0) && *btn_flag == 0){
-                            *led1 = *led1 ^ (1<<0);
-                            *btn_flag = 1;
+            case (1<<5): if((Timer_read(TIMER) == 0) && btn_flag == 0){
+                            led_left = led_left ^ (1<<1);
+                            btn_flag = 1;
                         }
-                        else if(Timer_read(TIMER)!=0) *btn_flag = 0;
-                         LED_write(GPIOC, *led1);
+                        else if(Timer_read(TIMER)!=0) btn_flag = 0;
+                         LED_write(GPIOC, led_left);
                          break;
-            case (1<<5): if((Timer_read(TIMER) == 0) && *btn_flag == 0){
-                            *led2 = *led2 ^ (1<<1);
-                            *btn_flag = 1;
+            case (1<<6): if((Timer_read(TIMER) == 0) && btn_flag == 0){
+                            led_right = led_right ^ (1<<2);
+                            btn_flag = 1;
                         }
-                        else if(Timer_read(TIMER)!=0) *btn_flag = 0;
-                         LED_write(GPIOC, *led2);
+                        else if(Timer_read(TIMER)!=0) btn_flag = 0;
+                         LED_write(GPIOC, led_right);
                          break;
-            case (1<<6): if((Timer_read(TIMER) == 0) && *btn_flag == 0){
-                            *led4 = *led4 ^ (1<<2);
-                            *btn_flag = 1;
+            case (1<<5) | (1<<6): if((Timer_read(TIMER) == 0) && btn_flag == 0){
+                            led_emer = led_emer ^ ((1<<1) | (1<<2));
+                            btn_flag = 1;
                         }
-                        else if(Timer_read(TIMER)!=0) *btn_flag = 0;
-                         LED_write(GPIOC, *led4);
-                         break;
-            case (1<<7): if((Timer_read(TIMER) == 0) && *btn_flag == 0){
-                            *led8 = *led8 ^ (1<<3);
-                            *btn_flag = 1;
-                        }
-                        else if(Timer_read(TIMER)!=0) *btn_flag = 0;
-                         LED_write(GPIOC, *led8);
+                        else if(Timer_read(TIMER)!=0) btn_flag = 0;
+                         LED_write(GPIOC, led_emer);
                          break;
         }
 }

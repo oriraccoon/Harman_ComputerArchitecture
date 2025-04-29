@@ -92,6 +92,9 @@ module FndController (
 
     logic o_clk;
     logic [3:0] digit1000, digit100, digit10, digit1;
+    logic [27:0] blink_data;
+
+    parameter LEFT = 16_000, RIGHT = 16_001, BOTH = 16_002;
 
     clock_divider #(
         .FCOUNT(100_000)
@@ -127,13 +130,24 @@ module FndController (
         end
     endfunction
 
+    function [27:0] blink(input [13:0] bcd);
+        begin
+            case (bcd)
+                LEFT: blink = {7'b0000110, 7'h3F, 7'h7F, 7'h7F};
+                RIGHT: blink = {7'h7F, 7'h7F, 7'h3F, 7'b0110000};
+                BOTH: blink = {7'b0000110, 7'h3F, 7'h3F, 7'b0110000};
+                default: blink = {7'h7F, 7'h7F, 7'h7F, 7'h7F};
+            endcase
+        end
+    endfunction
+
     always_ff @(posedge o_clk or posedge PRESET) begin
         if (PRESET) begin
             fndCom  = 4'b1110;
             fndFont = 8'hC0;
         end
         else begin
-            if (fcr) begin
+            if ( (fdr < 10000 ) && fcr) begin
                 case (fndCom)
                     4'b0111: begin
                         fndCom  <= 4'b1110;
@@ -150,6 +164,31 @@ module FndController (
                     4'b1011: begin
                         fndCom  <= 4'b0111;
                         fndFont <= {~fpr[3], bcd2seg(digit1000)};
+                    end
+                    default: begin
+                        fndCom  <= 4'b1110;
+                        fndFont <= 8'hC0;
+                    end
+                endcase
+            end
+            else if ( (fdr >= 10000) && fcr ) begin
+                blink_data = blink(fdr);
+                case (fndCom)
+                    4'b0111: begin
+                        fndCom  <= 4'b1110;
+                        fndFont <= {~fpr[0], blink_data[6:0]};
+                    end
+                    4'b1110: begin
+                        fndCom  <= 4'b1101;
+                        fndFont <= {~fpr[1], blink_data[13:7]};
+                    end
+                    4'b1101: begin
+                        fndCom  <= 4'b1011;
+                        fndFont <= {~fpr[2], blink_data[20:14]};
+                    end
+                    4'b1011: begin
+                        fndCom  <= 4'b0111;
+                        fndFont <= {~fpr[3], blink_data[27:21]};
                     end
                     default: begin
                         fndCom  <= 4'b1110;

@@ -11,7 +11,7 @@ module MCU (
     output logic       trig,
     input  logic       echo,
     inout  logic       dht_io,
-    output logic       led
+    output logic [2:0] led
 );
     // global signals
     logic        PCLK;

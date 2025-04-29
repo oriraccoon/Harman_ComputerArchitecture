@@ -105,7 +105,7 @@ module Ultrasonic_IP (
     logic o_PCLK;
     logic new_data_ready, new_data_ready_next;
 
-    median_filter_3samples #(.DATA_BITS($clog2(400))) udr_filter(
+    median_filter_5samples #(.DATA_BITS($clog2(400))) udr_filter(
         .clk(PCLK),
         .reset(PRESET),
         .new_data_ready(new_data_ready),  //  done 
