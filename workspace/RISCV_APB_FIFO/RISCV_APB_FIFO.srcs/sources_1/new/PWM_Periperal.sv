@@ -109,7 +109,7 @@ module PWM_IP (
 
     always_comb begin
         if (pdr == 0) begin
-            light = 2'b11;
+            light = 0;
         end
         else if (counter < pdr) begin
             light = 2'b11;

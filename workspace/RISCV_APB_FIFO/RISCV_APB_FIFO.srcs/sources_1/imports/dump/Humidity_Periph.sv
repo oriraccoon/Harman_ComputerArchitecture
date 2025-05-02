@@ -177,7 +177,7 @@ module Humidity_IP (
                 dht_io_oe_next = 1;
                 dht_io_next = 1;
                 if (o_clk) sec_next = sec_next + 1;
-                else if (sec_reg == 20) begin
+                else if (sec_reg == 30) begin
                     next = START;
                     sec_next = 0;
                     tick_count_next = 0;

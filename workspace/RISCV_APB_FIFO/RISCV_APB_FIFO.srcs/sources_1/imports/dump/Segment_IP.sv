@@ -176,25 +176,29 @@ module FndController (
                 case (fndCom)
                     4'b0111: begin
                         fndCom  <= 4'b1110;
-                        fndFont <= {~fpr[0], blink_data[6:0]};
+                        fndFont <= {1'b1, blink_data[6:0]};
                     end
                     4'b1110: begin
                         fndCom  <= 4'b1101;
-                        fndFont <= {~fpr[1], blink_data[13:7]};
+                        fndFont <= {1'b1, blink_data[13:7]};
                     end
                     4'b1101: begin
                         fndCom  <= 4'b1011;
-                        fndFont <= {~fpr[2], blink_data[20:14]};
+                        fndFont <= {1'b1, blink_data[20:14]};
                     end
                     4'b1011: begin
                         fndCom  <= 4'b0111;
-                        fndFont <= {~fpr[3], blink_data[27:21]};
+                        fndFont <= {1'b1, blink_data[27:21]};
                     end
                     default: begin
                         fndCom  <= 4'b1110;
                         fndFont <= 8'hC0;
                     end
                 endcase
+            end
+            else if (!fcr) begin
+                fndCom <= 4'b1111;
+                fndFont <= 8'hFF;
             end
         end
     end

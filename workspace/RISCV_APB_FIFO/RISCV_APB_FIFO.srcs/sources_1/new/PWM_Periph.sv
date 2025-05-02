@@ -12,19 +12,14 @@ module blink_Periph (
     input  logic        PSEL,
     output logic [31:0] PRDATA,
     output logic        PREADY,
-    output logic [ 2:0] led
+    output logic        led
 );
 
     logic [$clog2(400)-1:0] bdr;
-    logic [7:0] pdr;
 
     APB_SlaveIntf_blink U_APB_IntfO_blink (.*);
-    blink_led_IP U_blink_led_IP (.*,
-    .led(led[0]));
-    PWM_IP U_PWM_IP (.*,
-    .clk(PCLK),
-    .reset(PRESET),
-    .led(led[2:1]));
+    blink_led_IP U_blink_led_IP (.*);
+
 
 endmodule
 
@@ -41,13 +36,12 @@ module APB_SlaveIntf_blink (
     output logic [           31:0] PRDATA,
     output logic                   PREADY,
     // internal signals
-    output  logic [$clog2(400)-1:0] bdr,
-    output logic [7:0] pdr
+    output  logic [$clog2(400)-1:0] bdr
 );
     logic [31:0] slv_reg0, slv_reg1;  //, slv_reg2, slv_reg3;
 
     assign bdr = slv_reg0[$clog2(400)-1:0];
-    assign pdr = slv_reg1[7:0];
+    // assign pdr = slv_reg1[7:0];
 
     always_ff @(posedge PCLK, posedge PRESET) begin
         if (PRESET) begin
@@ -159,75 +153,3 @@ module blink_led_IP (
     end
 
 endmodule
-
-module PWM_IP (
-    input logic clk,
-    input logic reset,
-    input logic [7:0] pdr,
-    output logic [1:0] led
-);
-
-    parameter SYS_CLK = 100_000_000, PWM_FREQ = 1000, PWM_COUNTER_MAX = 255;
-
-    logic c_clk;
-
-    clock_divider_pwm #(
-        .FCOUNT(SYS_CLK / PWM_FREQ)
-    ) U_divider (
-        .clk  (clk),
-        .rst  (reset),
-        .o_clk(c_clk)
-    );
-
-    logic [7:0] counter;
-
-    always_ff @(posedge c_clk or posedge reset) begin
-        if (reset) begin
-            counter <= 0;
-        end
-        else begin
-            counter <= counter + 1;
-        end
-    end
-
-    always_comb begin
-        if (pdr == 0) begin
-            led = 0;
-        end
-        else if (counter < pdr) begin
-            led = 2'b11;
-        end
-        else begin
-            led = 0;
-        end
-    end
-
-endmodule
-
-
-module clock_divider_pwm #(
-    parameter FCOUNT = 100_000
-)(
-    input logic clk,
-    input logic rst,
-    output logic o_clk
-);
-    logic [$clog2(FCOUNT/2)-1:0] count;
-
-    always_ff @(posedge clk or posedge rst) begin
-        if (rst) begin
-            count <= 0;
-            o_clk <= 0;
-        end
-        else begin
-            if (count == FCOUNT/2 - 1) begin
-                o_clk <= ~o_clk;
-                count <= 0;
-            end
-            else begin
-                count <= count + 1;
-            end
-        end
-    end
-endmodule
-
