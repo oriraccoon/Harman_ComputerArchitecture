@@ -1,6 +1,6 @@
 `timescale 1ns / 1ps
 
-class transaction;
+class transaction_ultra;
 
     // APB Interface Signals
     rand logic [ 3:0] PADDR;
@@ -11,30 +11,25 @@ class transaction;
     logic      [31:0] PRDATA;  // dut out data
     logic             PREADY;  // dut out data
     // outport signals
-    rand logic        echo;
+    logic        echo;
     logic        trig;
+    rand logic [7:0] i_distance;
 
-    constraint c_paddr {PADDR inside {4'h0, 4'h4, 4'h8};}
-    constraint c_paddr_o {
-        if (PADDR == 0)
-        PWDATA inside {1'b0, 1'b1};
-        else
-        if (PADDR == 4)
-        PWDATA < 10;
-        else
-        if (PADDR == 8) PWDATA < 4'b1111;
+    constraint c_paddr {PADDR inside {4'h4};}
+    constraint c_dis {
+        10 < i_distance;
+        i_distance < 50;
     }
 
     task display(string name);
         $display(
-            "[%s] PADDR=%h, PWDATA=%h, PWRITE=%h, PENABLE=%h, PSEL=%h, PRDATA=%h, PREADY=%h, echo=%h, trig=%h",
-            name, PADDR, PWDATA, PWRITE, PENABLE, PSEL, PRDATA, PREADY, echo,
-            trig);
+            "[%s] PADDR=%h, PWDATA=%h, PWRITE=%h, PENABLE=%h, PSEL=%h, PRDATA=%h, PREADY=%h, i_distance=%h",
+            name, PADDR, PWDATA, PWRITE, PENABLE, PSEL, PRDATA, PREADY, i_distance);
     endtask  //
 
-endclass  //transaction
+endclass  //transaction_ultra
 
-interface APB_Slave_Intferface;
+interface APB_Slave_Intferface_ultra;
     logic        PCLK;
     logic        PRESET;
     // APB Interface Signals
@@ -48,81 +43,94 @@ interface APB_Slave_Intferface;
     // outport signals
     logic        echo;
     logic        trig;
+    logic [7:0] i_distance;
 
-endinterface  //APB_Slave_Intferface
+endinterface  //APB_Slave_Intferface_ultra
 
-class generator;
-    mailbox #(transaction) Gen2Drv_mbox;
+class generator_ultra;
+    mailbox #(transaction_ultra) Gen2Drv_mbox_ultra;
     event gen_next_event;
 
-    function new(mailbox#(transaction) Gen2Drv_mbox, event gen_next_event);
-        this.Gen2Drv_mbox   = Gen2Drv_mbox;
+    function new(mailbox#(transaction_ultra) Gen2Drv_mbox_ultra, event gen_next_event);
+        this.Gen2Drv_mbox_ultra   = Gen2Drv_mbox_ultra;
         this.gen_next_event = gen_next_event;
     endfunction  //new()
 
     task run(int repeat_counter);
-        transaction ultra_tr;
+        transaction_ultra ultra_tr;
         repeat (repeat_counter) begin
             ultra_tr = new();  // make instrance
             if (!ultra_tr.randomize()) $error("Randomization fail!");
             ultra_tr.display("GEN");
-            Gen2Drv_mbox.put(ultra_tr);
-            @(gen_next_event);  // wait a event from driver
+            Gen2Drv_mbox_ultra.put(ultra_tr);
+            @(gen_next_event);  // wait a event from driver_ultra
         end
     endtask  //
-endclass  //generator
+endclass  //generator_ultra
 
-class driver;
-    virtual APB_Slave_Intferface ultra_intf;
-    mailbox #(transaction) Gen2Drv_mbox;
-    transaction ultra_tr;
+class driver_ultra;
+    virtual APB_Slave_Intferface_ultra ultra_intf;
+    mailbox #(transaction_ultra) Gen2Drv_mbox_ultra;
+    transaction_ultra ultra_tr;
+    event mon_next_event;
 
-    function new(virtual APB_Slave_Intferface ultra_intf,
-                 mailbox#(transaction) Gen2Drv_mbox);
+    function new(virtual APB_Slave_Intferface_ultra ultra_intf,
+                 mailbox#(transaction_ultra) Gen2Drv_mbox_ultra,
+                 event mon_next_event);
         this.ultra_intf = ultra_intf;
-        this.Gen2Drv_mbox = Gen2Drv_mbox;
+        this.Gen2Drv_mbox_ultra = Gen2Drv_mbox_ultra;
+        this.mon_next_event = mon_next_event;
     endfunction  //new()
 
     task run();
         forever begin
-            Gen2Drv_mbox.get(ultra_tr);
+            Gen2Drv_mbox_ultra.get(ultra_tr);
             ultra_tr.display("DRV");
             @(posedge ultra_intf.PCLK);
-            ultra_intf.PADDR   <= ultra_tr.PADDR;
-            ultra_intf.PWDATA  <= ultra_tr.PWDATA;
-            ultra_intf.PWRITE  <= ultra_tr.PWRITE;
-            ultra_intf.PENABLE <= 1'b0;
-            ultra_intf.PSEL    <= 1'b1;
-            ultra_intf.echo    <= ultra_tr.echo;
-            @(posedge ultra_intf.PCLK);
-            ultra_intf.PADDR   <= ultra_tr.PADDR;
-            ultra_intf.PWDATA  <= ultra_tr.PWDATA;
-            ultra_intf.PWRITE  <= ultra_tr.PWRITE;
+            ultra_intf.PADDR   <= 4'h0;
+            ultra_intf.PWDATA  <= 32'b1;
+            ultra_intf.PWRITE  <= 1'b1;
             ultra_intf.PENABLE <= 1'b1;
             ultra_intf.PSEL    <= 1'b1;
-            ultra_intf.echo    <= ultra_tr.echo;
-            wait (ultra_intf.PREADY == 1'b1);
             @(posedge ultra_intf.PCLK);
+            ultra_intf.PADDR   <= 4'h4;
+            ultra_intf.PWDATA  <= 32'b0;
+            ultra_intf.PWRITE  <= 1'b0;
+            ultra_intf.PENABLE <= 1'b0;
+            ultra_intf.PSEL    <= 1'b1;
+            ultra_intf.i_distance    <= ultra_tr.i_distance;
+            wait (ultra_intf.PREADY == 1'b1);
+            wait (ultra_intf.trig == 1'b1);
+            wait (ultra_intf.trig == 1'b0);
+            #10700;
+            ultra_intf.echo    <= 1'b1;
+            #(ultra_tr.i_distance * 1000 * 58);
+            ultra_intf.echo    <= 1'b0;
+            ->mon_next_event;
+            
         end
     endtask  //
 
-endclass  //driver
+endclass  //driver_ultra
 
-class monitor;
-    mailbox #(transaction) Mon2Scb_mbox;
-    virtual APB_Slave_Intferface ultra_intf;
-    transaction ultra_tr;
+class monitor_ultra;
+    mailbox #(transaction_ultra) Mon2Scb_mbox_ultra;
+    virtual APB_Slave_Intferface_ultra ultra_intf;
+    transaction_ultra ultra_tr;
+    event mon_next_event;
 
-    function new(virtual APB_Slave_Intferface ultra_intf,
-                 mailbox#(transaction) Mon2Scb_mbox);
+    function new(virtual APB_Slave_Intferface_ultra ultra_intf,
+                 mailbox#(transaction_ultra) Mon2Scb_mbox_ultra,
+                 event mon_next_event);
         this.ultra_intf = ultra_intf;
-        this.Mon2Scb_mbox = Mon2Scb_mbox;
+        this.Mon2Scb_mbox_ultra = Mon2Scb_mbox_ultra;
+        this.mon_next_event = mon_next_event;
     endfunction  //new()
 
     task run();
         forever begin
             ultra_tr = new();
-            wait (ultra_intf.PREADY == 1'b1);
+            @(mon_next_event);
             #1;
             ultra_tr.PADDR   = ultra_intf.PADDR;
             ultra_tr.PWDATA  = ultra_intf.PWDATA;
@@ -131,126 +139,58 @@ class monitor;
             ultra_tr.PSEL    = ultra_intf.PSEL;
             ultra_tr.PRDATA  = ultra_intf.PRDATA;  // dut out data
             ultra_tr.PREADY  = ultra_intf.PREADY;  // dut out data
-            ultra_tr.echo    = ultra_intf.echo;
-            ultra_tr.trig    = ultra_intf.trig;
+            ultra_tr.i_distance = ultra_intf.i_distance;
             ultra_tr.display("Mon");
-            Mon2Scb_mbox.put(ultra_tr);
+            Mon2Scb_mbox_ultra.put(ultra_tr);
             repeat (5) @(posedge ultra_intf.PCLK);
         end
     endtask  //run
 
-endclass  //monitor
+endclass  //monitor_ultra
 
-class scoreboard;
-    mailbox #(transaction) Mon2Scb_mbox;
-    transaction ultra_tr;
+class scoreboard_ultra;
+    mailbox #(transaction_ultra) Mon2Scb_mbox_ultra;
+    transaction_ultra ultra_tr;
     event gen_next_event;
-    logic [3:0] digit [0:3];
-    logic [2:0] digit_sel;
-    logic [6:0] expect_font;
-    logic expect_dot;
-    // Reference Model
-    logic [31:0] refultraReg[0:2];
-    logic [6:0] refultraFont[0:9] = '{
-        7'h40,  // 1100_0000
-        7'h79,  // 1111_1001
-        7'h24,  // 1010_0100
-        7'h30,  // 1011_0000
-        7'h19,  // 1001_1001
-        7'h12,  // 1001_0010
-        7'h02,  // 1000_0010
-        7'h58,  // 1101_1000
-        7'h00,  // 1000_0000
-        7'h10   // 1001_0000
-    };
-    logic [9:0] write_cnt = 0;
-    logic [9:0] read_cnt = 0;
-    logic [9:0] pass_cnt = 0;
-    logic [9:0] fail_cnt = 0;
-    logic [9:0] total_cnt = 0;
-    logic font_pass;
-    logic read_pass;
-    logic [13:0] fdr;
-    logic [3:0] fpr;
-    // logic [31:0] RefRData;
 
-    function new(mailbox#(transaction) Mon2Scb_mbox, event gen_next_event);
-        this.Mon2Scb_mbox   = Mon2Scb_mbox;
+    int read_cnt, pass_cnt, fail_cnt, total_cnt;
+    bit read_pass;
+    int expected_distance;
+
+    function new(mailbox#(transaction_ultra) Mon2Scb_mbox_ultra, event gen_next_event);
+        this.Mon2Scb_mbox_ultra   = Mon2Scb_mbox_ultra;
         this.gen_next_event = gen_next_event;
-        for (int i = 0; i < 3; i++) begin
-            refultraReg[i] = 0;
-        end
-        // RefRData = 32'b0;
     endfunction  //new()
 
     task run();
-        font_pass   = 0;
-        read_pass   = 0;
         forever begin
-            Mon2Scb_mbox.get(ultra_tr);
+            Mon2Scb_mbox_ultra.get(ultra_tr);
             ultra_tr.display("SCB");
-            if (ultra_tr.PWRITE) begin
-                refultraReg[ultra_tr.PADDR[3:2]] = ultra_tr.PWDATA;
 
-                write_cnt = write_cnt + 1;
+            if (!ultra_tr.PWRITE) begin
+                read_cnt++;
+                expected_distance = ultra_tr.i_distance;
 
-                fdr = refultraReg[1];
-                fpr = refultraReg[2];
-
-                digit[0] = (fdr % 10);
-                digit[1] = (fdr % 100) / 10;
-                digit[2] = (fdr % 1000) / 100;
-                digit[3] = fdr / 1000;
-
-                case (ultra_tr.ultraCom)
-                    4'b1110: digit_sel = 0;
-                    4'b1101: digit_sel = 1;
-                    4'b1011: digit_sel = 2;
-                    4'b0111: digit_sel = 3;
-                    default: digit_sel = 0;
-                endcase
-
-                expect_font = refultraFont[digit[digit_sel]];
-                expect_dot = ~fpr[digit_sel];
-
-                if ({expect_dot,expect_font} == ultra_tr.ultraFont[7:0]) begin
-                    $display("FONT PASS");
-                    font_pass = 1;
+                // PRDATA는 보통 cm 단위 거리일 것이라고 가정
+                if (ultra_tr.PRDATA[7:0] == expected_distance) begin
+                    $display("[SCB] Read PASS! Expected = %0d, Got = %0d", expected_distance, ultra_tr.PRDATA[7:0]);
+                    pass_cnt++;
                 end else begin
-                    $display("FONT FAIL");
-                    font_pass = 0;
-                end           
-            end
-            else begin  // read 
-                if (refultraReg[ultra_tr.PADDR[3:2]] == ultra_tr.PRDATA) begin
-                    $display("ultra Read PASS, %h, %h",
-                             refultraReg[ultra_tr.PADDR[3:2]], ultra_tr.PRDATA);
-                    read_pass = 1;
-                end else begin
-                    $display("ultra Read FAIL, %h, %h",
-                             refultraReg[ultra_tr.PADDR[3:2]], ultra_tr.PRDATA);
-                    read_pass = 0;
+                    $display("[SCB] Read FAIL! Expected = %0d, Got = %0d", expected_distance, ultra_tr.PRDATA[7:0]);
+                    fail_cnt++;
                 end
-                read_cnt = read_cnt + 1;
+
+                total_cnt++;
             end
+
             ->gen_next_event;
-
-            if (font_pass == 1 | read_pass == 1) begin
-                pass_cnt = pass_cnt + 1;
-            end else begin
-                fail_cnt = fail_cnt + 1;
-            end
-
-            total_cnt = total_cnt + 1;
         end
-
-    endtask  //run
+    endtask
 
     task report();
         $display("===============================");
         $display("==        Final Report       ==");
         $display("===============================");
-        $display("      Write Test : %0d", write_cnt);
         $display("      Read Test  : %0d", read_cnt);
         $display("      PASS Test  : %0d", pass_cnt);
         $display("      Fail Test  : %0d", fail_cnt);
@@ -260,26 +200,27 @@ class scoreboard;
         $display("===============================");
     endtask  //report
 
-endclass  //scoreboard
+endclass  //scoreboard_ultra
 
-class envirnment;
-    mailbox #(transaction) Gen2Drv_mbox;
-    mailbox #(transaction) Mon2Scb_mbox;
+class envirnment_ultra;
+    mailbox #(transaction_ultra) Gen2Drv_mbox_ultra;
+    mailbox #(transaction_ultra) Mon2Scb_mbox_ultra;
 
-    generator ultra_gen;
-    driver ultra_drv;
-    monitor ultra_mon;
-    scoreboard ultra_scb;
+    generator_ultra ultra_gen;
+    driver_ultra ultra_drv;
+    monitor_ultra ultra_mon;
+    scoreboard_ultra ultra_scb;
 
     event gen_next_event;
+    event mon_next_event;
 
-    function new(virtual APB_Slave_Intferface ultra_intf);
-        Gen2Drv_mbox = new();
-        Mon2Scb_mbox = new();
-        this.ultra_gen = new(Gen2Drv_mbox, gen_next_event);
-        this.ultra_drv = new(ultra_intf, Gen2Drv_mbox);
-        this.ultra_mon = new(ultra_intf, Mon2Scb_mbox);
-        this.ultra_scb = new(Mon2Scb_mbox, gen_next_event);
+    function new(virtual APB_Slave_Intferface_ultra ultra_intf);
+        Gen2Drv_mbox_ultra = new();
+        Mon2Scb_mbox_ultra = new();
+        this.ultra_gen = new(Gen2Drv_mbox_ultra, gen_next_event);
+        this.ultra_drv = new(ultra_intf, Gen2Drv_mbox_ultra, mon_next_event);
+        this.ultra_mon = new(ultra_intf, Mon2Scb_mbox_ultra, mon_next_event);
+        this.ultra_scb = new(Mon2Scb_mbox_ultra, gen_next_event);
     endfunction  //new()
 
     task run(int count);
@@ -291,14 +232,14 @@ class envirnment;
         join_any
             ultra_scb.report();
     endtask  //
-endclass  //envirnment
+endclass  //envirnment_ultra
 
 module tb_Ultra_sys(
 
     );
 
-    envirnment ultra_env;
-    APB_Slave_Intferface ultra_intf ();
+    envirnment_ultra ultra_env;
+    APB_Slave_Intferface_ultra ultra_intf ();
 
     always #5 ultra_intf.PCLK = ~ultra_intf.PCLK;
 
