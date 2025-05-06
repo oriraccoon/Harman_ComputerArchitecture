@@ -1,4 +1,5 @@
 #include <stdint.h>
+#include <stdio.h>
 
 #define __IO            volatile
 
@@ -35,11 +36,21 @@ typedef struct {
     __IO uint32_t ARR;
 } TIMER_TypeDef;
 
+typedef struct{
+    __IO uint32_t FSR;
+    __IO uint32_t FWD;
+    __IO uint32_t FRD;
+} UART_TypeDef;
+
+typedef struct {
+    __IO uint32_t TILT_REG;
+} TILT_TypeDef;
+
 #define APB_BASEADDR        0x10000000
 #define TIMER_BASEADDR      (APB_BASEADDR + 0x1000)
 #define GPIOA_BASEADDR      (APB_BASEADDR + 0x1400)
 #define GPIOB_BASEADDR      (APB_BASEADDR + 0x1800)
-#define GPIOB_BASEADDR      (APB_BASEADDR + 0x1C00)
+#define GPIOC_BASEADDR      (APB_BASEADDR + 0x1C00)
 #define FND_BASEADDR        (APB_BASEADDR + 0x2000)
 
 #define ULTRA_BASEADDR      (APB_BASEADDR + 0x2400)
@@ -53,7 +64,7 @@ typedef struct {
 #define BUZZER_BASEADDR     (APB_BASEADDR + 0x4000)
 
 #define TIMER            ((TIMER_TypeDef *) TIMER_BASEADDR)
-#define GPIOB            ((GPIO_TypeDef *) GPIOB_BASEADDR)
+#define GPIOA            ((GPIO_TypeDef *) GPIOA_BASEADDR)
 #define GPIOB           ((GPIO_TypeDef *) GPIOB_BASEADDR)
 #define GPIOC           ((GPIO_TypeDef *) GPIOC_BASEADDR)
 #define FND             ((FND_TypeDef *) FND_BASEADDR)
@@ -66,7 +77,7 @@ typedef struct {
 #define UART       ( (UART_TypeDef *) UART_BASEADDR)
 #define TILT       ( (TILT_TypeDef *) TILT_BASEADDR)
 #define NOTHING    ( (NOTHING_TypeDef *) NOTHING_BASEADDR)
-#define BUZZER     ( (BUZZER_TypeDef *) BUZZER_BASEADDR)
+#define BUZZER     ( (BLINK_TypeDef *) BUZZER_BASEADDR)
 
 #define POWER_ON    1
 #define POWER_OFF   0
@@ -120,11 +131,16 @@ void blink_led_fnd_func(GPIO_TypeDef *GPIOx_LED, GPIO_TypeDef *GPIOx_SWITCH1, GP
 
 void toggle_led_fnd(TIMER_TypeDef *timerx, volatile uint8_t *ggambbak, volatile uint8_t *blink_flag, volatile uint8_t *led_data, volatile uint8_t *fnd_blink);
 
+void UART_send(UART_TypeDef *UARTx, uint8_t data);
+void UART_sendString(UART_TypeDef *UARTx, const char *str);
+void utoa(uint32_t val, char *buf);
+
 #define led_default 0b11
 
 int main() {
-    LED_init(GPIOB);
-    Switch_init(GPIOC);
+    char buf[64];
+    LED_init(GPIOA);
+    Switch_init(GPIOB);
 
     FND_init(FND, POWER_ON);
     FND_writeDot(FND, 0);
@@ -153,7 +169,7 @@ int main() {
     while (1) {
         DOT3_Timer(&DOT3, &btn_flag3);
 
-        uint32_t sw = Switch_read(GPIOC);
+        uint32_t sw = Switch_read(GPIOB);
 
         switch (sw) {
             case 0x00:
@@ -194,9 +210,9 @@ int main() {
                 break;
 
             case (1 << 3): {
-                LED_write(GPIOB, led_default);
+                LED_write(GPIOA, led_default);
                 FND_init(FND,POWER_OFF);
-                while(Switch_read(GPIOC) == (1<<3))
+                while(Switch_read(GPIOB) == (1<<3))
                 {
                     if(btn_flag)
                     {
@@ -212,7 +228,7 @@ int main() {
 
                         delay(10);
 
-                        LED_write(GPIOB, led_data);
+                        LED_write(GPIOA, led_data);
                         FND_init(FND,fnd_blink);
                         FND_writeData(FND, fnd_shape);
                     }
@@ -230,7 +246,7 @@ int main() {
 
                         delay(10);
 
-                        LED_write(GPIOB, led_data);
+                        LED_write(GPIOA, led_data);
                         FND_init(FND,fnd_blink);
                         FND_writeData(FND, fnd_shape); // debugging
                     }
@@ -248,12 +264,12 @@ int main() {
 
                         delay(10);
 
-                        LED_write(GPIOB, led_data);
+                        LED_write(GPIOA, led_data);
                         FND_init(FND,fnd_blink);
                         FND_writeData(FND, fnd_shape); // debugging
                     }
 
-                    switch(Switch_read(GPIOB))
+                    switch(Switch_read(GPIOC))
                     {
                         case (1<<0):
                             sw_flag1 = 1;
@@ -265,7 +281,7 @@ int main() {
 
                         case (1<<4):
                             delay(10);
-                            if((Switch_read(GPIOB) == (1<<4)) && (btn_detect == 0))
+                            if((Switch_read(GPIOC) == (1<<4)) && (btn_detect == 0))
                             {
                                 btn_detect = 1;
                                 btn_flag ^= 1;
@@ -279,17 +295,36 @@ int main() {
                             if(!btn_flag)
                             {
                                 led_data = 0b11;
-                                LED_write(GPIOB, led_default);
+                                LED_write(GPIOA, led_default);
                                 FND_init(FND,POWER_OFF);
                             }
                     }
 
                 }
 
-                LED_write(GPIOB, 0);
+                LED_write(GPIOA, 0);
                 FND_init(FND, POWER_ON);
                 break;
             }
+            case (1 << 2): {
+                uint32_t ultra_val = Ultra_read(ULTRA);
+                uint32_t dht_val   = DHT_read(DHT);
+            
+                char str1[16], str2[16];
+            
+                utoa(ultra_val, str1);
+                utoa(dht_val, str2);
+            
+                UART_sendString(UART, "Ultra: ");
+                UART_sendString(UART, str1);
+                UART_sendString(UART, " mm, DHT: ");
+                UART_sendString(UART, str2);
+                UART_sendString(UART, "\r\n");
+            
+                break;
+            }
+             
+    
 
             default:
                 FND_writeData(FND, 7777);
@@ -298,8 +333,6 @@ int main() {
     }
     return 0;
 }
-
-
 
 
 
@@ -389,3 +422,38 @@ void DOT3_Timer(uint32_t *DOT3, uint32_t *btn_flag2){
 
     FND_writeDot(FND, *DOT3);
 }
+
+void UART_send(UART_TypeDef *UARTx, uint8_t data) {  
+    while (!(UARTx->FSR & (1<<1)));// UART TX READY 
+    UARTx->FWD = data;
+}
+
+
+void utoa(uint32_t val, char *buf) {
+    char temp[10];
+    int i = 0, j = 0;
+
+    if (val == 0) {
+        buf[0] = '0';
+        buf[1] = '\0';
+        return;
+    }
+
+    while (val > 0) {
+        temp[i++] = (val % 10) + '0';
+        val /= 10;
+    }
+
+    // 역순으로 복사
+    while (i > 0) {
+        buf[j++] = temp[--i];
+    }
+    buf[j] = '\0';
+}
+
+void UART_sendString(UART_TypeDef *UARTx, const char *str) {
+    while (*str) {
+        UART_send(UARTx, *str++);
+    }
+}
+
