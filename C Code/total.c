@@ -21,7 +21,6 @@ typedef struct {
 
 typedef struct {
     __IO uint32_t BDR;
-    // __IO uint32_t PDR;
 } BLINK_TypeDef;
 
 typedef struct {
@@ -36,26 +35,38 @@ typedef struct {
     __IO uint32_t ARR;
 } TIMER_TypeDef;
 
-#define APB_BASEADDR    0x10000000
-#define TIMER_BASEADDR     (APB_BASEADDR + 0x1000)
-#define GPIOB_BASEADDR   (APB_BASEADDR + 0x2000)
-#define GPIOC_BASEADDR   (APB_BASEADDR + 0x3000)
-#define GPIOD_BASEADDR   (APB_BASEADDR + 0x4000)
-#define FND_BASEADDR    (APB_BASEADDR + 0x5000)
-#define ULTRA_BASEADDR    (APB_BASEADDR + 0x6000)
-#define DHT_BASEADDR    (APB_BASEADDR + 0x7000)
-#define BLINK_BASEADDR    (APB_BASEADDR + 0x8000)
-#define TIMER2_BASEADDR     (APB_BASEADDR + 0x9000)
+#define APB_BASEADDR        0x10000000
+#define TIMER_BASEADDR      (APB_BASEADDR + 0x1000)
+#define GPIOA_BASEADDR      (APB_BASEADDR + 0x1400)
+#define GPIOB_BASEADDR      (APB_BASEADDR + 0x1800)
+#define GPIOB_BASEADDR      (APB_BASEADDR + 0x1C00)
+#define FND_BASEADDR        (APB_BASEADDR + 0x2000)
+
+#define ULTRA_BASEADDR      (APB_BASEADDR + 0x2400)
+#define DHT_BASEADDR        (APB_BASEADDR + 0x2800)
+#define BLINK_BASEADDR      (APB_BASEADDR + 0x2C00)
+
+#define TIMER2_BASEADDR     (APB_BASEADDR + 0x3000)
+#define UART_BASEADDR       (APB_BASEADDR + 0x3400)
+#define TILT_BASEADDR       (APB_BASEADDR + 0x3800)
+#define NOTHING_BASEADDR    (APB_BASEADDR + 0x3C00)
+#define BUZZER_BASEADDR     (APB_BASEADDR + 0x4000)
 
 #define TIMER            ((TIMER_TypeDef *) TIMER_BASEADDR)
 #define GPIOB            ((GPIO_TypeDef *) GPIOB_BASEADDR)
+#define GPIOB           ((GPIO_TypeDef *) GPIOB_BASEADDR)
 #define GPIOC           ((GPIO_TypeDef *) GPIOC_BASEADDR)
-#define GPIOD           ((GPIO_TypeDef *) GPIOD_BASEADDR)
 #define FND             ((FND_TypeDef *) FND_BASEADDR)
+
 #define ULTRA           ((ULTRA_TypeDef *) ULTRA_BASEADDR)
 #define DHT             ((DHT_TypeDef *) DHT_BASEADDR)
 #define BLINK           ((BLINK_TypeDef *) BLINK_BASEADDR)
+
 #define TIMER2            ((TIMER_TypeDef *) TIMER2_BASEADDR)
+#define UART       ( (UART_TypeDef *) UART_BASEADDR)
+#define TILT       ( (TILT_TypeDef *) TILT_BASEADDR)
+#define NOTHING    ( (NOTHING_TypeDef *) NOTHING_BASEADDR)
+#define BUZZER     ( (BUZZER_TypeDef *) BUZZER_BASEADDR)
 
 #define POWER_ON    1
 #define POWER_OFF   0
@@ -112,8 +123,8 @@ void toggle_led_fnd(TIMER_TypeDef *timerx, volatile uint8_t *ggambbak, volatile 
 #define led_default 0b11
 
 int main() {
-    LED_init(GPIOC);
-    Switch_init(GPIOD);
+    LED_init(GPIOB);
+    Switch_init(GPIOC);
 
     FND_init(FND, POWER_ON);
     FND_writeDot(FND, 0);
@@ -142,7 +153,7 @@ int main() {
     while (1) {
         DOT3_Timer(&DOT3, &btn_flag3);
 
-        uint32_t sw = Switch_read(GPIOD);
+        uint32_t sw = Switch_read(GPIOC);
 
         switch (sw) {
             case 0x00:
@@ -166,7 +177,6 @@ int main() {
                 FND_writeData(FND, distance);
                 Ultra_init(ULTRA, POWER_OFF);
                 BLINK_init(BLINK, distance);
-                LED_write(GPIOC, 0x01);
                 break;
 
             case (1 << 5):
@@ -184,9 +194,9 @@ int main() {
                 break;
 
             case (1 << 3): {
-                LED_write(GPIOC, led_default);
+                LED_write(GPIOB, led_default);
                 FND_init(FND,POWER_OFF);
-                while(Switch_read(GPIOD) == (1<<3))
+                while(Switch_read(GPIOC) == (1<<3))
                 {
                     if(btn_flag)
                     {
@@ -202,7 +212,7 @@ int main() {
 
                         delay(10);
 
-                        LED_write(GPIOC, led_data);
+                        LED_write(GPIOB, led_data);
                         FND_init(FND,fnd_blink);
                         FND_writeData(FND, fnd_shape);
                     }
@@ -220,7 +230,7 @@ int main() {
 
                         delay(10);
 
-                        LED_write(GPIOC, led_data);
+                        LED_write(GPIOB, led_data);
                         FND_init(FND,fnd_blink);
                         FND_writeData(FND, fnd_shape); // debugging
                     }
@@ -238,7 +248,7 @@ int main() {
 
                         delay(10);
 
-                        LED_write(GPIOC, led_data);
+                        LED_write(GPIOB, led_data);
                         FND_init(FND,fnd_blink);
                         FND_writeData(FND, fnd_shape); // debugging
                     }
@@ -269,14 +279,14 @@ int main() {
                             if(!btn_flag)
                             {
                                 led_data = 0b11;
-                                LED_write(GPIOC, led_default);
+                                LED_write(GPIOB, led_default);
                                 FND_init(FND,POWER_OFF);
                             }
                     }
 
                 }
 
-                LED_write(GPIOC, 0);
+                LED_write(GPIOB, 0);
                 FND_init(FND, POWER_ON);
                 break;
             }
