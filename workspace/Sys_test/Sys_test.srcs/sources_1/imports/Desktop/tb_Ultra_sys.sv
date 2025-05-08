@@ -195,12 +195,11 @@ class scoreboard_ultra;
         $display("===============================");
         $display("==        Final Report       ==");
         $display("===============================");
-        $display("      Read Test  : %0d", read_cnt);
-        $display("      PASS Test  : %0d", pass_cnt);
-        $display("      Fail Test  : %0d", fail_cnt);
-        $display("      Total Test : %0d", total_cnt);
+        $display("       Read Test  : %0d", read_cnt);
+        $display("(^-^)b PASS Test  : %0d", pass_cnt);
+        $display("(;-;)p FAIL Test  : %0d", fail_cnt);
+        $display("       Total Test : %0d", total_cnt);
         $display("===============================");
-        $display("==   test bench is finished  ==");
         $display("===============================");
     endtask  //report
 

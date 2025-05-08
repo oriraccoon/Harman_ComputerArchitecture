@@ -264,18 +264,15 @@ class scoreboard_humi;
     endtask  //run
 
     task report();
-        $display("===============================");
-        $display("==        Final Report       ==");
-        $display("===============================");
-        $display("      Read Test  : %0d", read_cnt);
-        $display("      HUMI PASS Test  : %0d", h_pass_cnt);
-        $display("      HUMI Fail Test  : %0d", h_fail_cnt);
-        $display("      TEMP PASS Test  : %0d", t_pass_cnt);
-        $display("      TEMP Fail Test  : %0d", t_fail_cnt);
-        $display("      Total Test : %0d", total_cnt);
-        $display("===============================");
-        $display("==   test bench is finished  ==");
-        $display("===============================");
+        $display("===========================================");
+        $display("==             Final Report              ==");
+        $display("===========================================");
+        $display("       Read Test  : %0d", read_cnt);
+        $display("(^-^)b PASS Test  : HUMI = %0d / TEMP = %0d", h_pass_cnt, t_pass_cnt);
+        $display("(;-;)p FAIL Test  : HUMI = %0d / TEMP = %0d", h_fail_cnt, t_fail_cnt);
+        $display("       Total Test : %0d ", total_cnt);
+        $display("===========================================");
+        $display("===========================================");
     endtask  //report
 
 endclass  //scoreboard_humi
@@ -342,7 +339,7 @@ module tb_Humid_sys(
         dht_intf.PRESET = 1;
         #10 dht_intf.PRESET = 0;
         dht_env = new(dht_intf);
-        dht_env.run(20);
+        dht_env.run(30);
         #30;
         $finish;
     end
