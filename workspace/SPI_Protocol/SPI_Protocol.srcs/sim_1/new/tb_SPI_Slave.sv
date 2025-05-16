@@ -1,88 +1,72 @@
 `timescale 1ns / 1ps
-//////////////////////////////////////////////////////////////////////////////////
-// Company: 
-// Engineer: 
-// 
-// Create Date: 2025/05/16 16:24:44
-// Design Name: 
-// Module Name: tb_SPI_Slave
-// Project Name: 
-// Target Devices: 
-// Tool Versions: 
-// Description: 
-// 
-// Dependencies: 
-// 
-// Revision:
-// Revision 0.01 - File Created
-// Additional Comments:
-// 
-//////////////////////////////////////////////////////////////////////////////////
-typedef enum {
-    IDLE,
-    SMODE0,
-    SMODE1,
-    SMODE2,
-    SMODE3
-} spi_mode_e;
 
-module tb_SPI_Slave ();
 
-    logic            clock;
-    logic            reset;
 
-    // SPI
-    logic            MISO;
-    wire             MOSI;
-    wire             SCLK;
-    wire             SS;
-    logic            CPOL;
-    logic            CPHA;
+module tb_SPI_Slave();
+    // General
+    logic clock;
+    logic reset;
+
+    // SPI_Slave
+    logic SCLK;
+    logic MOSI;
+    logic SS;
+    wire MISO;
 
     // Data
-    logic            start;
-    logic      [7:0] tx_data;
-    wire       [7:0] rx_data;
-    wire             done;
-    wire             m_ready;
+    logic       start;
+    wire       done;
+    wire       ready;
 
     // internal
-    spi_mode_e       state;
-    wire             SCLK_RisingEdge_detect;
-    wire             SCLK_FallingEdge_detect;
-    wire       [7:0] data;
+    logic SCLK_RisingEdge_detect;
+    logic SCLK_FallingEdge_detect;
+    wire [7:0] data;
 
-    wire s_done;
+SPI_Slave dut(
+.*,
+.S_STATE(SMODE0)
+);
 
-    SPI_Slave dut_slave (
-        .*,
-        .S_STATE(state),
+always #5 begin
+    clock = ~clock;
+end
 
-        // Data
-        .start(!m_ready),
-        .done (s_done),
-        .ready()
-
-        // internal
-    );
-
-
-    SPI_Master dut (
-        .*,
-        .ready(m_ready)
-    );
-always #5 clock = ~clock;
+always @(negedge clock) SCLK = ~SCLK;
+always @(posedge SCLK) SCLK_RisingEdge_detect = ~SCLK_RisingEdge_detect;
+always @(negedge SCLK) SCLK_FallingEdge_detect = ~SCLK_FallingEdge_detect;
 
 initial begin
-    clock = 0; reset = 1; MISO = 0; CPOL = 0; CPHA = 0; start = 0; tx_data = 0;
+    clock = 0; reset = 1; SCLK = 0; SS = 1; MOSI = 0; start = 0;
+    SCLK_RisingEdge_detect = 0;
+    SCLK_FallingEdge_detect = 0;
     #10 reset = 0;
-    #10 start = 1; tx_data = 8'b10010011;
-    #10 start = 0;
-    @(posedge s_done);
+    #10 start = 1; SS = 0;
+    
+    @(posedge SCLK_RisingEdge_detect);
+    start = 0; MOSI = 1;
+    @(posedge SCLK_RisingEdge_detect);
+    MOSI = 1;
+    @(posedge SCLK_RisingEdge_detect);
+    MOSI = 0;
+    @(posedge SCLK_RisingEdge_detect);
+    MOSI = 0;
+    @(posedge SCLK_RisingEdge_detect);
+    MOSI = 0;
+    @(posedge SCLK_RisingEdge_detect);
+    MOSI = 1;
+    @(posedge SCLK_RisingEdge_detect);
+    MOSI = 0;
+    @(posedge SCLK_RisingEdge_detect);
+    MOSI = 1;
+    @(posedge done);
+    SS = 1;
     @(posedge clock);
     @(posedge clock);
     @(posedge clock);
     $finish;
-
+    
 end
+
+
 endmodule

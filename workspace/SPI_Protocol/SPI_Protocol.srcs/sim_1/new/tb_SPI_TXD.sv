@@ -19,6 +19,7 @@
 // 
 //////////////////////////////////////////////////////////////////////////////////
 
+import spi_mode_pkg::*;
 
 module tb_SPI_TXD ();
     // General
@@ -39,8 +40,11 @@ module tb_SPI_TXD ();
     wire [7:0] rx_data;
     wire       done;
     wire       ready;
-
+    
+    wire SCLK_RisingEdge_detect;
+    wire SCLK_FallingEdge_detect;
     // internal
+    spi_mode_e state;
 
 SPI_Master dut(
 .*

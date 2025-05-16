@@ -1,12 +1,6 @@
 `timescale 1ns / 1ps
 
-typedef enum {
-    IDLE,
-    SMODE0,
-    SMODE1,
-    SMODE2,
-    SMODE3
-} spi_mode_e;
+import spi_mode_pkg::*;
 
 module SPI_Master (
     // General
