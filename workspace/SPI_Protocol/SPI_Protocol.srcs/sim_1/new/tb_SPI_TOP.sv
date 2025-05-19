@@ -31,18 +31,23 @@ module tb_SPI_TOP ();
         logic [7:0] tx_data;
         wire [7:0] data;
 
-SPI_TOP dut(
-    .*
-);
+        logic [3:0] fndCom;
+        logic [7:0] fndFont;
+        logic [7:0] sw;
+        
+    SPI_TOP dut(
+        .*
+    );
 
 always #5 clock = ~clock;
 
 initial begin
-    clock = 0; reset = 1; btn = 0; tx_data = 0;
+    clock = 0; reset = 1; btn = 0; tx_data = 0; sw = 0;
     #10 reset = 0;
-    #10 btn = 1; tx_data = 8'b1100_1100;
-    #10 btn = 0;
-    #1000; $finish;
+    #100 btn = 1; tx_data = 8'b0100_1101;
+    #10 btn = 0; 
+    // #100 sw = 8'b1000_1000;
+    #10000; $finish;
 end
 
 endmodule
