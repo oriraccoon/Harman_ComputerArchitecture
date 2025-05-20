@@ -44,10 +44,11 @@ always #5 clock = ~clock;
 initial begin
     clock = 0; reset = 1; btn = 0; tx_data = 0; sw = 0;
     #10 reset = 0;
-    #100 btn = 1; tx_data = 8'b0100_1101;
+    #100 btn = 1; tx_data = 8'b1100_1101; sw = 8'b1000_1000;
     #10 btn = 0; 
-    // #100 sw = 8'b1000_1000;
-    #10000; $finish;
+    #100 btn = 1; 
+    #10 btn = 0;
+    #2000; $finish;
 end
 
 endmodule

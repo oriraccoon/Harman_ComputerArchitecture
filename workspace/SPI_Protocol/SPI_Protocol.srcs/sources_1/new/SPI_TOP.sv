@@ -27,19 +27,16 @@ module SPI_TOP (
     wire       SCLK_RisingEdge_detect;
     wire       SCLK_FallingEdge_detect;
 
-    wire       m_tx_done;
-    wire       m_tx_ready;
-    wire       m_rx_done;
-    wire       m_rx_ready;
+    wire       m_done;
+    wire       m_ready;
 
-    wire       s_tx_done;
-    wire       s_tx_ready;
-    wire       s_rx_done;
-    wire       s_rx_ready;
+    wire       s_done;
+    wire       s_ready;
     
+    logic MOSI_start;
+    logic MISO_start;
+
     spi_mode_e state;
-    wire       m_rx_signal;
-    wire       s_rx_signal;
 
 
     initial begin
@@ -52,25 +49,16 @@ module SPI_TOP (
         .*,
         .start(btn),
         .rx_data(),
-        .end_signal(s_rx_done),
-        .s_rx_signal(s_rx_signal),
-        .m_rx_signal(m_rx_signal),
-        .tx_done(m_tx_done),
-        .tx_ready(m_tx_ready),
-        .rx_done(m_rx_done),
-        .rx_ready(m_rx_ready)
+        .ready(m_ready),
+        .done(m_done)
     );
 
     Segment_SPI s (
         .*,
         .S_STATE(state),
-        .s_rx_signal(s_rx_signal),
-        .m_rx_signal(m_rx_signal),
         // Data
-        .start(!m_tx_ready),
-        .tx_done(s_tx_done),
-        .tx_ready(s_tx_ready),
-        .rx_done(s_rx_done),
-        .rx_ready(s_rx_ready)
+        .start(btn),
+        .done(s_done),
+        .ready(s_ready)
     );
 endmodule

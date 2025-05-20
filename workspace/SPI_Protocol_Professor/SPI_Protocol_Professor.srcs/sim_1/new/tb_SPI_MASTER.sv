@@ -15,16 +15,20 @@ module tb_SPI_Master ();
     logic       SCLK;
     logic       MOSI;
     logic       MISO;
-    logic       CS;
+    logic       SS;
+    logic       so_done;
 
-    assign MISO = MOSI; //MISO 테스트
 
-    SPI_Master U_dut (.*);
+    SPI_Master U_M_dut (.*);
+
+    SPI_SLAVE U_S_dut(
+        .*
+    );
 
     always #5 clk = ~clk;
 
     initial begin
-        clk = 0; CS = 1;
+        clk = 0;
         reset = 1;
         #10;
         reset = 0;
@@ -32,36 +36,85 @@ module tb_SPI_Master ();
         repeat(3); @(posedge clk);
 
         // address byte
+        SS = 1;
         @(posedge clk);
-        tx_data = 8'h01; start = 1; cpol = 0; cpha = 0; CS = 0;
+        tx_data = 8'b1000_0000; start = 1; cpol = 0; cpha = 0; SS = 0;
         @(posedge clk);
         start = 0;
         wait(done == 1);
         @(posedge clk);
 
         // write data byte on 0x01 address
+
         @(posedge clk);
-        tx_data = 8'h55; start = 1; cpol = 0; cpha = 0; CS = 0;
+        tx_data = 8'b0001_0000; start = 1; cpol = 0; cpha = 0; SS = 0;
         @(posedge clk);
         start = 0;
         wait(done == 1);
         @(posedge clk);
 
         @(posedge clk);
-        tx_data = 8'haa; start = 1; cpol = 0; cpha = 1;  CS = 0;
+        tx_data = 8'b0010_0000; start = 1; cpol = 0; cpha = 0; SS = 0;
         @(posedge clk);
         start = 0;
         wait(done == 1);
         @(posedge clk);
 
         @(posedge clk);
-        tx_data = 8'hab; start = 1;  cpol = 1; cpha = 1;
+        tx_data = 8'b0011_0000; start = 1; cpol = 0; cpha = 0; SS = 0;
         @(posedge clk);
         start = 0;
         wait(done == 1);
         @(posedge clk);
-        CS = 1;
 
+        @(posedge clk);
+        tx_data = 8'b0100_0000; start = 1; cpol = 0; cpha = 0; SS = 0;
+        @(posedge clk);
+        start = 0;
+        wait(done == 1);
+        @(posedge clk);
+        SS = 1;
+
+        // address byte
+        SS = 1;
+        @(posedge clk);
+        tx_data = 8'b0000_0000; start = 1; cpol = 0; cpha = 0; SS = 0;
+        @(posedge clk);
+        start = 0;
+        wait(done == 1);
+        @(posedge clk);
+        
+        @(posedge clk);
+        start = 1;
+        @(posedge clk);
+        start = 0;
+        wait(so_done == 1);
+        @(posedge clk);
+        wait(done == 1);
+        @(posedge clk);
+        start = 1;
+        @(posedge clk);
+        start = 0;
+        wait(so_done == 1);
+        @(posedge clk);
+        wait(done == 1);
+        @(posedge clk);
+        start = 1;
+        @(posedge clk);
+        start = 0;
+        wait(so_done == 1);
+        @(posedge clk);
+        wait(done == 1);
+        @(posedge clk);
+        start = 1;
+        @(posedge clk);
+        start = 0;
+        wait(so_done == 1);
+        @(posedge clk);
+        wait(done == 1);
+        @(posedge clk);
+
+        SS = 1;
 
         #200 $finish;
     end

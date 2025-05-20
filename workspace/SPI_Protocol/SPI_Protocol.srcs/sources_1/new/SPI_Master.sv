@@ -4,12 +4,10 @@ import spi_mode_pkg::*;
 
 module SPI_Master (
     // General
-
     input logic clock,
     input logic reset,
 
     // SPI_Master
-
     input  logic MISO,
     output logic MOSI,
     output logic SCLK,
@@ -18,21 +16,16 @@ module SPI_Master (
     input  logic CPHA,
 
     // Data
-
     input  logic            start,
     input  logic      [7:0] tx_data,
-    input  logic            end_signal,
-    input  logic            m_rx_signal,
+    input logic MISO_start,
     output logic      [7:0] rx_data,
-    output logic            rx_done,
-    output logic            rx_ready,
-    output logic            tx_done,
-    output logic            tx_ready,
-    output logic            s_rx_signal,
+    output logic            done,
+    output logic            ready,
     output spi_mode_e       state,
+    output logic MOSI_start,
 
     // internal
-
     output logic SCLK_RisingEdge_detect,
     output logic SCLK_FallingEdge_detect
 );
@@ -40,9 +33,11 @@ module SPI_Master (
     logic prev_SCLK;
     logic cpol0sclk, cpol1sclk;
     logic o_clk;
+    logic tx_done;
+
 
     clock_div #(
-        .FCOUNT(10)
+        .FCOUNT(5)
     ) c (
         .*,
         .start(!SS)
@@ -63,14 +58,14 @@ module SPI_Master (
             prev_SCLK <= SCLK;
             if (start) begin
                 SS <= 1'b0;
-            end else if (end_signal) begin
+            end else if (tx_done) begin
                 SS <= 1'b1;
             end
         end
     end
 
-    always_ff @(posedge o_clk or posedge reset or posedge rx_done) begin
-        if (reset || rx_done) begin
+    always_ff @(posedge o_clk or posedge reset or posedge done) begin
+        if (reset || done) begin
             cpol0sclk <= 1'b0;
             cpol1sclk <= 1'b1;
         end 
@@ -98,7 +93,6 @@ module SPI_Master (
             SMODE0: begin
                 // rising : rx data, falling : tx data
                 SCLK = cpol0sclk;
-
                 if ({CPHA, CPOL} != 2'b00) begin
                     state_next = IDLE;
                 end
@@ -107,7 +101,6 @@ module SPI_Master (
             SMODE1: begin
                 // rising : tx data, falling : rx data
                 SCLK = cpol1sclk;
-
                 if ({CPHA, CPOL} != 2'b01) begin
                     state_next = IDLE;
                 end
@@ -115,7 +108,6 @@ module SPI_Master (
             SMODE2: begin
                 // rising : tx data, falling : rx data
                 SCLK = cpol0sclk;
-
                 if ({CPHA, CPOL} != 2'b10) begin
                     state_next = IDLE;
                 end
@@ -123,7 +115,6 @@ module SPI_Master (
             SMODE3: begin
                 // rising : rx data, falling : tx data
                 SCLK = cpol1sclk;
-
                 if ({CPHA, CPOL} != 2'b11) begin
                     state_next = IDLE;
                 end
@@ -131,215 +122,179 @@ module SPI_Master (
         endcase
     end
 
-    SPI_Master_RXD U_SPI_RXD (
+    SPI_Master_Transceiver U_SPI_Transceiver (
         .*,
         .S_STATE(state),
-        .start(m_rx_signal)
-    );
-
-
-    SPI_Master_TXD U_SPI_TXD (
-        .*,
-        .S_STATE(state),
-        .start  (!SS),
-        .start_signal(s_rx_signal)
+        .start  (!SS)
     );
 
 endmodule
 
-module SPI_Master_RXD (
-    input logic      clock,
-    input logic      reset,
-    input logic      SCLK,
-    input logic      MISO,
-    input spi_mode_e S_STATE,
-    input logic      SCLK_RisingEdge_detect,
-    input logic      SCLK_FallingEdge_detect,
-    input logic      start,
+module SPI_Master_Transceiver (
+    input logic       clock,
+    input logic       reset,
+    input logic       SCLK,
+    input logic       MISO,
+    input logic [7:0] tx_data,
+    input logic       SS,
+    input logic       start,
+    input spi_mode_e  S_STATE,
+    input logic       SCLK_RisingEdge_detect,
+    input logic       SCLK_FallingEdge_detect,
+    input logic MISO_start,
 
-    output logic       rx_done,
-    output logic       rx_ready,
-    output logic [7:0] rx_data
+    output logic       MOSI,
+    output logic       done,
+    output logic       tx_done,
+    output logic       ready,
+    output logic [7:0] rx_data,
+    output logic MOSI_start
 );
 
     typedef enum {
         IDLE,
+        WAIT,
         START,
         DONE
     } state_e;
-    state_e state, state_next;
+    
+    state_e tx_state, tx_state_next;
+    state_e rx_state, rx_state_next;
 
-    logic sclk_edge;
-    logic [7:0] temp_rx_data_reg, temp_rx_data_next;
-    logic [2:0] bit_count_reg, bit_count_next;
-
-
-    always_comb begin
-        case (S_STATE)
-            SMODE0: begin
-                sclk_edge = SCLK_RisingEdge_detect;
-            end
-            SMODE1: begin
-                sclk_edge = SCLK_FallingEdge_detect;
-            end
-            SMODE2: begin
-                sclk_edge = SCLK_FallingEdge_detect;
-            end
-            SMODE3: begin
-                sclk_edge = SCLK_RisingEdge_detect;
-            end
-        endcase
-    end
-
-    always_ff @(posedge clock or posedge reset) begin
-        if (reset) begin
-            state <= IDLE;
-            temp_rx_data_reg <= 0;
-            bit_count_reg <= 0;
-        end else begin
-            state <= state_next;
-            temp_rx_data_reg <= temp_rx_data_next;
-            bit_count_reg <= bit_count_next;
-        end
-    end
-
-    always_comb begin
-        state_next = state;
-        rx_done = 1'b0;
-        rx_ready = 1'b1;
-        temp_rx_data_next = temp_rx_data_reg;
-        bit_count_next = bit_count_reg;
-        case (state)
-            IDLE: begin
-                if (start) begin
-                    state_next = START;
-                    rx_ready = 1'b0;
-                    temp_rx_data_next = 8'b0;
-                    bit_count_next = 0;
-                end
-            end
-            START: begin
-                rx_ready = 1'b0;
-                if (sclk_edge) begin
-                    if (bit_count_reg == 7) begin
-                        temp_rx_data_next = temp_rx_data_next[6:0] << 1;
-                        temp_rx_data_next[0] = MISO;
-                        state_next = DONE;
-                        bit_count_next = 0;
-                    end else begin
-                        temp_rx_data_next = temp_rx_data_next[6:0] << 1;
-                        temp_rx_data_next[0] = MISO;
-                        bit_count_next = bit_count_next + 1;
-                    end
-                end
-            end
-            DONE: begin
-                rx_ready = 1'b0;
-                rx_done = 1'b1;
-                rx_data = temp_rx_data_reg;
-                state_next = IDLE;
-            end
-        endcase
-    end
-
-endmodule
-
-module SPI_Master_TXD (
-    input logic            clock,
-    input logic            reset,
-    input logic      [7:0] tx_data,
-    input logic            SS,
-    input spi_mode_e       S_STATE,
-    input logic            SCLK_RisingEdge_detect,
-    input logic            SCLK_FallingEdge_detect,
-    input logic            start,
-
-    output logic tx_done,
-    output logic tx_ready,
-    output logic start_signal,
-    output logic MOSI
-);
-
-    typedef enum {
-        IDLE,
-        START,
-        DONE
-    } state_e;
-    state_e state, state_next;
-
-    logic sclk_edge;
+    logic tx_sclk_edge;
+    logic rx_sclk_edge;
     logic [7:0] temp_tx_data_reg, temp_tx_data_next;
-    logic [2:0] bit_count_reg, bit_count_next;
+    logic [7:0] temp_rx_data_reg, temp_rx_data_next;
+    logic [7:0] rx_data_reg;
+    logic [2:0] tx_bit_count_reg, tx_bit_count_next;
+    logic [2:0] rx_bit_count_reg, rx_bit_count_next;
     logic MOSI_temp;
 
     always_comb begin
         case (S_STATE)
-            SMODE0: begin
-                sclk_edge = SCLK_FallingEdge_detect;
+            SMODE0, SMODE3: begin
+                tx_sclk_edge = SCLK_FallingEdge_detect;
+                rx_sclk_edge = SCLK_RisingEdge_detect;
             end
-            SMODE1: begin
-                sclk_edge = SCLK_RisingEdge_detect;
+            SMODE1, SMODE2: begin
+                tx_sclk_edge = SCLK_RisingEdge_detect;
+                rx_sclk_edge = SCLK_FallingEdge_detect;
             end
-            SMODE2: begin
-                sclk_edge = SCLK_RisingEdge_detect;
-            end
-            SMODE3: begin
-                sclk_edge = SCLK_FallingEdge_detect;
+            default: begin
+                tx_sclk_edge = 0;
+                rx_sclk_edge = 0;
             end
         endcase
     end
 
     always_ff @(posedge clock or posedge reset) begin
         if (reset) begin
-            state <= IDLE;
-            bit_count_reg <= 0;
+            tx_state <= IDLE;
+            rx_state <= IDLE;
+            tx_bit_count_reg <= 0;
+            rx_bit_count_reg <= 0;
             temp_tx_data_reg <= 0;
+            temp_rx_data_reg <= 0;
+            rx_data <= 0;
         end else begin
-            state <= state_next;
-            bit_count_reg <= bit_count_next;
+            tx_state <= tx_state_next;
+            rx_state <= rx_state_next;
+            tx_bit_count_reg <= tx_bit_count_next;
+            rx_bit_count_reg <= rx_bit_count_next;
             temp_tx_data_reg <= temp_tx_data_next;
-            if (SS) MOSI <= 1'bz;
-            else MOSI <= MOSI_temp;
+            temp_rx_data_reg <= temp_rx_data_next;
+            rx_data <= rx_data_reg;
+            MOSI <= (SS) ? 1'bz : MOSI_temp;
         end
     end
 
-    always_comb begin
-        state_next = state;
+    always_comb begin : M_MOSI_block
+        tx_state_next = tx_state;
         tx_done = 1'b0;
-        tx_ready = 1'b1;
-        start_signal = 1'b0;
-        bit_count_next = bit_count_reg;
+        ready = 1'b1;
+        MOSI_start = 1'b0;
+        tx_bit_count_next = tx_bit_count_reg;
         temp_tx_data_next = temp_tx_data_reg;
         MOSI_temp = MOSI;
-        case (state)
+        case (tx_state)
             IDLE: begin
                 if (start) begin
-                    state_next = START;
-                    tx_ready = 1'b0;
+                    if ( (S_STATE == SMODE2) || (S_STATE == SMODE3) ) begin
+                        tx_state_next = WAIT;
+                    end
+                    tx_state_next = START;
+                    ready = 1'b0;
                     temp_tx_data_next = tx_data;
-                    bit_count_next = 0;
+                    tx_bit_count_next = 0;
+                end
+            end
+            WAIT: begin
+                if (tx_bit_count_reg == 5) begin
+                    tx_state_next = START;
+                    tx_bit_count_next = 0;
+                end
+                else begin
+                    tx_bit_count_next = tx_bit_count_reg + 1;
                 end
             end
             START: begin
-                tx_ready = 1'b0;
-                if (sclk_edge) begin
-                    start_signal = 1'b1;
-                    if (bit_count_reg == 7) begin
-                        MOSI_temp = temp_tx_data_reg[7];
-                        temp_tx_data_next = {temp_tx_data_reg[6:0], 1'b0};
-                        state_next = DONE;
-                        bit_count_next = 0;
+                ready = 1'b0;
+                if (tx_sclk_edge) begin
+                    MOSI_start = 1'b1;
+                    MOSI_temp = temp_tx_data_reg[7];
+                    temp_tx_data_next = {temp_tx_data_reg[6:0], 1'b0};
+                    if (tx_bit_count_reg == 7) begin
+                        tx_state_next = DONE;
+                        tx_bit_count_next = 0;
                     end else begin
-                        MOSI_temp = temp_tx_data_reg[7];
-                        temp_tx_data_next = {temp_tx_data_reg[6:0], 1'b0};
-                        bit_count_next = bit_count_next + 1;
+                        tx_bit_count_next = tx_bit_count_next + 1;
                     end
                 end
             end
             DONE: begin
-                tx_ready = 1'b0;
+                ready = 1'b0;
                 tx_done = 1'b1;
-                state_next = IDLE;
+                tx_state_next = IDLE;
+            end
+        endcase
+    end
+
+
+    always_comb begin : M_MISO_block
+        rx_state_next = rx_state;
+        done = 1'b0;
+        temp_rx_data_next = temp_rx_data_reg;
+        rx_bit_count_next = rx_bit_count_reg;
+        rx_data_reg = rx_data;
+        case (rx_state)
+            IDLE: begin
+                if (start) begin
+                    rx_state_next = WAIT;
+                    temp_rx_data_next = 8'b0;
+                    rx_bit_count_next = 0;
+                end
+            end
+            WAIT: begin
+                if (MISO_start) begin
+                    rx_state_next = START;
+                end
+            end
+            START: begin
+                if (rx_sclk_edge) begin
+                    temp_rx_data_next = temp_rx_data_next[6:0] << 1;
+                    temp_rx_data_next[0] = MISO;
+                    if (rx_bit_count_reg == 7) begin
+                        rx_state_next = DONE;
+                        rx_bit_count_next = 0;
+                    end else begin
+                        rx_bit_count_next = rx_bit_count_next + 1;
+                    end
+                end
+            end
+            DONE: begin
+                done = 1'b1;
+                rx_data_reg = temp_rx_data_reg;
+                rx_state_next = IDLE;
             end
         endcase
     end
