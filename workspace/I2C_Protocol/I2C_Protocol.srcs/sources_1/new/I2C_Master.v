@@ -6,12 +6,12 @@ module I2C_Master (
     input        reset,
     // I2C ports
     inout        SCL,
-    inout        SDA,
+    inout       SDA,
     // external signals
     input  [7:0] tx_data,
     output reg [7:0] rx_data,
     input  [6:0] addr,
-
+ 
 
     input        wren,          // 쓰기 모드 or 읽기 모드?
     input        start,         // I2C 통신 시작 IDLE -> START
@@ -51,8 +51,8 @@ module I2C_Master (
     reg sda_reg = 1, sda_reg_next = 1;
     reg temp_ack, temp_ack_next;
 
-    assign SDA = (write_en && ~sda_reg) ? 1'b0 : 1'bz;
-    assign SCL = (scl_en && ~scl_reg) ? 1'b0 : 1'bz;
+    assign SDA = (write_en) ? (~sda_reg) ? 1'b0 : 1'b1 : 1'bz;
+    assign SCL = (scl_en) ? (~scl_reg) ? 1'b0 : 1'b1 : 1'bz;
     assign o_state = state;
 
     always @(posedge clk or posedge reset) begin
@@ -173,7 +173,7 @@ module I2C_Master (
             IDLE: begin
                 sda_reg_next = 1'b1;
                 scl_reg_next = 1'b1;
-                if (sta) begin
+                if (sta) begin 
                     sda_reg_next = 1'b0;
                 end
             end
@@ -203,13 +203,13 @@ module I2C_Master (
                     sda_reg_next = (bit_count == 6) ? temp_wren : temp_addr_data[6];
                     bit_count_next = (bit_count == 7) ? 0 : bit_count + 1;
                     if (bit_count == 7) begin
-                        write_en_next = 0;
+                        write_en_next = 1;
                     end
                 end
             end
 
             READ_ACK: begin
-                write_en_next = 0;
+                write_en_next = 1;
                 count_next = count + 1;
                 if (count == 0)
                     scl_reg_next = 1;
@@ -284,10 +284,12 @@ module I2C_Master (
                 write_en_next = 1;
                 count_next = count + 1;
                 sda_reg_next = 0;
-                if (count == 1)
+                if (count == 0)
                     scl_reg_next = 1;
-                else if (count == 3)
+                else if (count == 2)
                     scl_reg_next = 0;
+                else if (count == 3)
+                    sda_reg_next = 1;
             end
         endcase
     end

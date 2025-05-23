@@ -43,161 +43,134 @@ module I2C_Slave_Intf (
     output reg [7:0] si_data
 );
 
-    localparam
-        IDLE = 0,
-        ADDR_READ = 2,
-        READ_ACK = 3,
-        READ_ACK2 = 1,
-        WRITE_DATA = 4,
-        READ_DATA = 5,
-        HOLD = 6,
-        WRITE_ACK = 8,
-        LOW = 9
+    localparam 
+        READ_ADDR = 0,
+        SEND_ACK = 1,
+        WRITE_DATA = 2,
+        READ_DATA = 3,
+        SEND_ACK2 = 4,
+        READ_ACK = 5
     ;
 
-    localparam MY_ADDR = 7;
+    localparam MY_ADDR = 7'd7;
 
-    reg [3:0] state = IDLE;
-    reg [3:0] bit_count = 0;
+    reg [2:0] state = READ_ADDR;
     reg write_en = 0;
-    reg scl_en = 0;
     reg sda_reg = 0;
-    reg scl_reg = 0;
     reg start = 0;
-    reg [7:0] temp_rdata = 8'b0;
-    reg [7:0] temp_wdata = 8'b0;
-    reg [7:0] temp_aw = 8'b0;
     reg temp_ack = 0;
-    reg count = 0;
-    reg [6:0] target_addr;
+    reg [2:0] bit_count = 7;
+    reg [7:0] temp_si_data = 0;
+    reg [7:0] temp_so_data = 0;
 
+    assign SDA = (write_en) ? sda_reg : 1'bz;
+    
 
-    assign SDA = (write_en && ~sda_reg) ? 1'b0 : 1'bz;
-    assign SCL = /*(scl_en && ~scl_reg) ? 1'b0 : */1'bz;
-
-    always @(negedge SDA) begin
-        if (SCL) begin
+    always @( negedge SDA ) begin
+        if (~start && SCL) begin
             start <= 1;
-        end
-        if (state == HOLD) begin
-            if (temp_wren) begin
-                state <= WRITE_DATA;
-                write_en <= 1;
-                sda_reg <= temp_wdata[7];
-                temp_wdata <= {temp_wdata[6:0], 1'b0};
-            end
-            else begin
-                state <= READ_DATA;
-            end
+            
         end
     end
 
-    always @(posedge SDA) begin
-        if (SCL) begin
+    always @( posedge SDA ) begin
+        if (start && SCL) begin
             start <= 0;
-            state <= IDLE;
+            bit_count <= 7;
+            state <= READ_ADDR;
         end
     end
 
-    always @(posedge SCL) begin
-        case (state)
-            ADDR_READ: begin
-                temp_aw   <= {temp_aw[6:0], SDA};
-                bit_count <= bit_count + 1;
-            end
-            WRITE_ACK: begin
-                if (target_addr == MY_ADDR) begin
-                    sda_reg <= 0;
-                end
-                else sda_reg <= 1;
-                temp_wdata <= so_data;
-            end
-            READ_ACK: begin
-                temp_ack   <= SDA;
-                temp_wdata <= so_data;
-            end
-            READ_ACK2: begin
-                state <= (temp_ack) ? IDLE : HOLD;
-                
-                temp_wdata <= so_data;
-            end
-            WRITE_DATA: begin
-                write_en <= 1;
-                bit_count <= bit_count + 1;
-            end
-            READ_DATA: begin
-                temp_rdata <= {temp_rdata[6:0], SDA};
-                bit_count  <= bit_count + 1;
-            end
-        endcase
-    end
-
-    always @(negedge SCL) begin
+    always @( posedge SCL ) begin
         if (start) begin
             case (state)
-                IDLE: begin
-                    scl_en <= 0;
-                    bit_count <= 0;
-                    temp_aw <= 0;
-                    count <= 0;
-                    temp_addr_data <= 0;
-                    state <= ADDR_READ;
-                end
-                ADDR_READ: begin
-                    if (bit_count == 8) begin
-                        bit_count <= 0;
-                        state <= WRITE_ACK;
-                        {target_addr, temp_wren} <= temp_aw;
+                READ_ADDR: begin
+                    temp_si_data[bit_count] <= SDA;
+                    if (bit_count == 0) begin
+                        state <= SEND_ACK;
                     end
+                    else bit_count <= bit_count - 1;
                 end
-                WRITE_ACK: begin
-                    if (target_addr == MY_ADDR) begin
-                        state <= HOLD;
+                SEND_ACK: begin
+                    if (MY_ADDR == temp_si_data[7:1]) begin
+                        temp_addr_data <= 0;
+                        bit_count <= 7;
+                        temp_wren <= temp_si_data[0];
+                        if (temp_si_data[0]) begin
+                            state <= READ_DATA;
+                            temp_si_data <= 0;
+                            temp_so_data <= so_data;
+                        end
+                        else begin
+                            state <= WRITE_DATA;
+                            temp_si_data <= 0;
+                            temp_so_data <= so_data;
+                        end
                     end
-                    else state <= IDLE;
-                end
-                READ_ACK: begin
-                    state <= (temp_ack) ? IDLE : HOLD;
-                end
-                READ_ACK2: begin
-                    temp_ack   <= SDA;
                 end
                 WRITE_DATA: begin
-                    sda_reg <= temp_wdata[7];
-                    temp_wdata <= {temp_wdata[6:0], 1'b0};
-                    if (bit_count == 8) begin
-                        bit_count <= 0;
-                        state <= READ_ACK2;
-                        write_en <= 0;
-                        count <= 1;
-                        if (temp_addr_data == 6) begin
-                            temp_addr_data <= 0;
-                        end
-                        else temp_addr_data <= temp_addr_data + count;
+                    temp_si_data[bit_count] <= SDA;
+                    if (bit_count == 0) begin
+                        state <= SEND_ACK2;
                     end
+                    else bit_count <= bit_count - 1;
                 end
                 READ_DATA: begin
-                    if (bit_count == 8) begin
-                        bit_count <= 0;
-                        state <= WRITE_ACK;
-                        si_data <= temp_rdata;
-                        count <= 1;
-                        if (temp_addr_data == 6) begin
-                            temp_addr_data <= 0;
-                        end
-                        else temp_addr_data <= temp_addr_data + count;
+                    if (bit_count == 0) begin
+                        state <= SEND_ACK2;
                     end
+                    else begin
+                        bit_count <= bit_count - 1;
+                    end
+                end
+                SEND_ACK2: begin
+                    bit_count <= 7;
+                    si_data <= temp_si_data;
+                    if (temp_addr_data == 6) begin
+                        temp_addr_data <= 0;
+                    end
+                    else temp_addr_data <= temp_addr_data + 1;
+                    state <= WRITE_DATA;
+                end
+                READ_ACK: begin
+                    bit_count <= 7;
+                    temp_so_data <= so_data;
+                    if (temp_addr_data == 6) begin
+                        temp_addr_data <= 0;
+                    end
+                    else temp_addr_data <= temp_addr_data + 1;
+                    state <= READ_DATA;
                 end
             endcase
         end
     end
 
-    always @(*) begin
+    always @( negedge SCL ) begin
         case (state)
-            WRITE_ACK: write_en = 1;
-            default:   write_en = 0;
+            READ_ADDR: begin
+                write_en <= 0;
+            end
+            SEND_ACK: begin
+                write_en <= 1;
+                sda_reg <= ~(MY_ADDR == temp_si_data[7:1]);
+            end
+            WRITE_DATA: begin
+                write_en <= 0;
+            end
+            READ_DATA: begin
+                write_en <= 1;
+                sda_reg <= temp_so_data[bit_count];
+            end
+            SEND_ACK2: begin
+                write_en <= 1;
+                sda_reg <= 0;
+            end
+            READ_ACK: begin
+                write_en <= 0;
+            end
         endcase
     end
+
 
 endmodule
 
