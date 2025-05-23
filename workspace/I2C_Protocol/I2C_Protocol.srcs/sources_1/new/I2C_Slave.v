@@ -55,6 +55,7 @@ module I2C_Slave_Intf (
         LOW = 9
     ;
 
+    localparam MY_ADDR = 7;
 
     reg [3:0] state = IDLE;
     reg [3:0] bit_count = 0;
@@ -68,6 +69,7 @@ module I2C_Slave_Intf (
     reg [7:0] temp_aw = 8'b0;
     reg temp_ack = 0;
     reg count = 0;
+    reg [6:0] target_addr;
 
 
     assign SDA = (write_en && ~sda_reg) ? 1'b0 : 1'bz;
@@ -104,7 +106,10 @@ module I2C_Slave_Intf (
                 bit_count <= bit_count + 1;
             end
             WRITE_ACK: begin
-                sda_reg <= 0;
+                if (target_addr == MY_ADDR) begin
+                    sda_reg <= 0;
+                end
+                else sda_reg <= 1;
                 temp_wdata <= so_data;
             end
             READ_ACK: begin
@@ -135,17 +140,21 @@ module I2C_Slave_Intf (
                     bit_count <= 0;
                     temp_aw <= 0;
                     count <= 0;
+                    temp_addr_data <= 0;
                     state <= ADDR_READ;
                 end
                 ADDR_READ: begin
                     if (bit_count == 8) begin
                         bit_count <= 0;
                         state <= WRITE_ACK;
-                        {temp_addr_data, temp_wren} <= temp_aw;
+                        {target_addr, temp_wren} <= temp_aw;
                     end
                 end
                 WRITE_ACK: begin
-                    state <= HOLD;
+                    if (target_addr == MY_ADDR) begin
+                        state <= HOLD;
+                    end
+                    else state <= IDLE;
                 end
                 READ_ACK: begin
                     state <= (temp_ack) ? IDLE : HOLD;
