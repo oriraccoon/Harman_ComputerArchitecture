@@ -21,26 +21,28 @@ module I2C_Slave_LED (
     reg sda_out_en_reg, sda_out_en_next;
     reg addr_match_reg, addr_match_next;
 
+
+
     assign SDA = sda_out_en_reg ? 1'b0 : 1'bz;  //sda_out_en = 1일때만 sda를 0으로 내림, 그외에는 주도권 포기
 
-    always @(negedge SCL, posedge reset) begin
+    always @(negedge SCL) begin
         if (reset) begin
-        state <= IDLE;
-        shift_reg <= 0;
-        bit_count_reg <= 0;
-        sda_out_en_reg <= 0;
-        addr_match_reg <= 0;      
-        led <= 0;
+            state <= IDLE;
+            shift_reg <= 0;
+            bit_count_reg <= 0;
+            sda_out_en_reg <= 0;
+            addr_match_reg <= 0;
+            led <= 8'b0;
         end else begin
-        state <= state_next;
-        shift_reg <= shift_next;
-        bit_count_reg <= bit_count_next;
-        sda_out_en_reg <= sda_out_en_next;
-        addr_match_reg <= addr_match_next;
-        end 
+            state <= state_next;
+            shift_reg <= shift_next;
+            bit_count_reg <= bit_count_next;
+            sda_out_en_reg <= sda_out_en_next;
+            addr_match_reg <= addr_match_next;
+        end
 
         if (state == DATA && bit_count_reg == 7) begin
-            led <= {shift_reg[6:0], SDA};  
+            led <= {shift_reg[6:0], SDA};
         end
 
     end
@@ -67,8 +69,8 @@ module I2C_Slave_LED (
                     bit_count_next = bit_count_reg + 1;
                 end else begin
                     shift_next = {shift_reg[6:0], SDA};  // R/W결정
-                    sda_out_en_next = 1'b1;  //NACK
                     state_next = ADDR_MATCH;
+                    sda_out_en_next = 1'b1;  //NACK
                 end
             end
             ADDR_MATCH: begin
@@ -80,7 +82,7 @@ module I2C_Slave_LED (
                     state_next = DATA;
                 end else begin
                     addr_match_next = 1'b0;
-                    sda_out_en_next = 1'b1;  //NACK
+                    //sda_out_en_next = 1'b1;  //NACK
                     bit_count_next = 0;
                     state_next = IDLE;
                 end
@@ -88,16 +90,16 @@ module I2C_Slave_LED (
             DATA: begin
                 sda_out_en_next = 1'b0;  // sda(ALK) 주도권x
                 if (addr_match_reg) begin
-                    if (bit_count_reg < 7) begin  //8비트 데이터 수신
+                    if (bit_count_reg < 8) begin  //8비트 데이터 수신
                         shift_next = {shift_reg[6:0], SDA};
                         bit_count_next = bit_count_reg + 1;
                     end else begin  //끝나면
                         sda_out_en_next = 1'b1;
                         addr_match_next  = 0;
-                        bit_count_next  = 0;
-                        shift_next = 0;
-                        state_next = IDLE;
                     end
+                end else begin
+                    bit_count_next  = 0;
+                    state_next = IDLE;
                 end
             end
         endcase
