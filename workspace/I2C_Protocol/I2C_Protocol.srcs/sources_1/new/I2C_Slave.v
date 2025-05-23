@@ -78,7 +78,6 @@ module I2C_Slave_Intf (
             start <= 1;
         end
         if (state == HOLD) begin
-            
             if (temp_wren) begin
                 state <= WRITE_DATA;
                 write_en <= 1;
@@ -162,6 +161,10 @@ module I2C_Slave_Intf (
                         state <= READ_ACK2;
                         write_en <= 0;
                         count <= 1;
+                        if (temp_addr_data == 6) begin
+                            temp_addr_data <= 0;
+                        end
+                        else temp_addr_data <= temp_addr_data + count;
                     end
                 end
                 READ_DATA: begin
