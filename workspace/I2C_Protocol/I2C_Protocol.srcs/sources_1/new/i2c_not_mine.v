@@ -32,7 +32,7 @@ module I2C_Slave_LED (
             bit_count_reg <= 0;
             sda_out_en_reg <= 0;
             addr_match_reg <= 0;
-            led <= 8'b0;
+            led <= 0;
         end else begin
             state <= state_next;
             shift_reg <= shift_next;
@@ -69,8 +69,8 @@ module I2C_Slave_LED (
                     bit_count_next = bit_count_reg + 1;
                 end else begin
                     shift_next = {shift_reg[6:0], SDA};  // R/W결정
-                    state_next = ADDR_MATCH;
                     sda_out_en_next = 1'b1;  //NACK
+                    state_next = ADDR_MATCH;
                 end
             end
             ADDR_MATCH: begin
@@ -82,7 +82,7 @@ module I2C_Slave_LED (
                     state_next = DATA;
                 end else begin
                     addr_match_next = 1'b0;
-                    //sda_out_en_next = 1'b1;  //NACK
+                    sda_out_en_next = 1'b1;  //NACK
                     bit_count_next = 0;
                     state_next = IDLE;
                 end
@@ -96,10 +96,10 @@ module I2C_Slave_LED (
                     end else begin  //끝나면
                         sda_out_en_next = 1'b1;
                         addr_match_next  = 0;
+                        bit_count_next  = 0;
+                        shift_next = 0;
+                        state_next = IDLE;
                     end
-                end else begin
-                    bit_count_next  = 0;
-                    state_next = IDLE;
                 end
             end
         endcase
