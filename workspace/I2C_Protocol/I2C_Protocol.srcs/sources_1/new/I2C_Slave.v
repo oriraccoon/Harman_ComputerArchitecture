@@ -47,6 +47,7 @@ module I2C_Slave_Intf (
         IDLE = 0,
         ADDR_READ = 2,
         READ_ACK = 3,
+        READ_ACK2 = 1,
         WRITE_DATA = 4,
         READ_DATA = 5,
         HOLD = 6,
@@ -70,14 +71,14 @@ module I2C_Slave_Intf (
 
 
     assign SDA = (write_en && ~sda_reg) ? 1'b0 : 1'bz;
-    assign SCL = (scl_en && ~scl_reg) ? 1'b0 : 1'bz;
+    assign SCL = /*(scl_en && ~scl_reg) ? 1'b0 : */1'bz;
 
     always @(negedge SDA) begin
         if (SCL) begin
             start <= 1;
         end
         if (state == HOLD) begin
-            temp_addr_data <= temp_addr_data + count;
+            
             if (temp_wren) begin
                 state <= WRITE_DATA;
                 write_en <= 1;
@@ -86,7 +87,6 @@ module I2C_Slave_Intf (
             end
             else begin
                 state <= READ_DATA;
-                si_data <= 8'bx;
             end
         end
     end
@@ -112,14 +112,14 @@ module I2C_Slave_Intf (
                 temp_ack   <= SDA;
                 temp_wdata <= so_data;
             end
+            READ_ACK2: begin
+                state <= (temp_ack) ? IDLE : HOLD;
+                
+                temp_wdata <= so_data;
+            end
             WRITE_DATA: begin
                 write_en <= 1;
-                if (bit_count == 8) begin
-                    bit_count <= 0;
-                    state <= READ_ACK;
-                    write_en <= 0;
-                    count <= 1;
-                end
+                bit_count <= bit_count + 1;
             end
             READ_DATA: begin
                 temp_rdata <= {temp_rdata[6:0], SDA};
@@ -151,10 +151,18 @@ module I2C_Slave_Intf (
                 READ_ACK: begin
                     state <= (temp_ack) ? IDLE : HOLD;
                 end
+                READ_ACK2: begin
+                    temp_ack   <= SDA;
+                end
                 WRITE_DATA: begin
                     sda_reg <= temp_wdata[7];
                     temp_wdata <= {temp_wdata[6:0], 1'b0};
-                    bit_count <= bit_count + 1;
+                    if (bit_count == 8) begin
+                        bit_count <= 0;
+                        state <= READ_ACK2;
+                        write_en <= 0;
+                        count <= 1;
+                    end
                 end
                 READ_DATA: begin
                     if (bit_count == 8) begin
@@ -162,6 +170,10 @@ module I2C_Slave_Intf (
                         state <= WRITE_ACK;
                         si_data <= temp_rdata;
                         count <= 1;
+                        if (temp_addr_data == 6) begin
+                            temp_addr_data <= 0;
+                        end
+                        else temp_addr_data <= temp_addr_data + count;
                     end
                 end
             endcase
