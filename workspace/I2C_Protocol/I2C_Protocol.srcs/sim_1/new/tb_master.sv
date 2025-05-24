@@ -19,7 +19,7 @@ module tb_master;
     logic wren;
     // wire tx_done;
     // wire ready;
-    wire [7:0] led;
+    wire [15:0] led;
 
     I2C_Master dut (
         .clk(clk),

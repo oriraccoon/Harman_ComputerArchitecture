@@ -4,7 +4,7 @@ module I2C_Slave (
     // I2C ports
     inout SCL,
     inout SDA,
-    output [7:0] led
+    output [15:0] led
 );
 
     wire [6:0] temp_addr_data;
@@ -12,7 +12,8 @@ module I2C_Slave (
     wire [7:0] so_data;
     wire [7:0] si_data;
 
-    assign led = so_data;
+    assign led[7:0] = so_data;
+    assign led[15:8] = si_data;
 
     I2C_SLAVE_REG U_I2C_REG (
         .addr(temp_addr_data),
@@ -62,6 +63,7 @@ module I2C_Slave_Intf (
     reg [2:0] bit_count = 7;
     reg [7:0] temp_si_data = 0;
     reg [7:0] temp_so_data = 0;
+    reg [7:0] temp_aw_data = 0;
 
     assign SDA = (write_en) ? sda_reg : 1'bz;
     
@@ -69,7 +71,6 @@ module I2C_Slave_Intf (
     always @( negedge SDA ) begin
         if (~start && SCL) begin
             start <= 1;
-            
         end
     end
 
@@ -85,18 +86,19 @@ module I2C_Slave_Intf (
         if (start) begin
             case (state)
                 READ_ADDR: begin
-                    temp_si_data[bit_count] <= SDA;
+                    temp_aw_data[bit_count] <= SDA;
                     if (bit_count == 0) begin
                         state <= SEND_ACK;
+                        temp_so_data <= so_data;
                     end
                     else bit_count <= bit_count - 1;
                 end
                 SEND_ACK: begin
-                    if (MY_ADDR == temp_si_data[7:1]) begin
+                    if (MY_ADDR == temp_aw_data[7:1]) begin
                         temp_addr_data <= 0;
                         bit_count <= 7;
-                        temp_wren <= temp_si_data[0];
-                        if (temp_si_data[0]) begin
+                        temp_wren <= temp_aw_data[0];
+                        if (temp_aw_data[0]) begin
                             state <= READ_DATA;
                             temp_si_data <= 0;
                             temp_so_data <= so_data;
@@ -117,7 +119,7 @@ module I2C_Slave_Intf (
                 end
                 READ_DATA: begin
                     if (bit_count == 0) begin
-                        state <= SEND_ACK2;
+                        state <= READ_ACK;
                     end
                     else begin
                         bit_count <= bit_count - 1;
@@ -141,6 +143,7 @@ module I2C_Slave_Intf (
                     else temp_addr_data <= temp_addr_data + 1;
                     state <= READ_DATA;
                 end
+                
             endcase
         end
     end
@@ -152,7 +155,7 @@ module I2C_Slave_Intf (
             end
             SEND_ACK: begin
                 write_en <= 1;
-                sda_reg <= ~(MY_ADDR == temp_si_data[7:1]);
+                sda_reg <= ~(MY_ADDR == temp_aw_data[7:1]);
             end
             WRITE_DATA: begin
                 write_en <= 0;
@@ -184,14 +187,11 @@ module I2C_SLAVE_REG (
 
     reg [7:0] mem[0:6];
 
-    reg [7:0] so_data_reg;
-    assign so_data = so_data_reg;
+    assign so_data = mem[addr];
     
     always @(*) begin
         if (!wren) begin
             mem[addr] = si_data;
-        end else begin
-            so_data_reg = mem[addr];
         end
     end
 
