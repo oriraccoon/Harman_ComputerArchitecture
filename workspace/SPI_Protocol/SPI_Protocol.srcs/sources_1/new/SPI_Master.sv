@@ -18,16 +18,14 @@ module SPI_Master (
     // Data
     input  logic            start,
     input  logic      [7:0] tx_data,
-    input logic MISO_start,
     output logic      [7:0] rx_data,
-    output logic            done,
-    output logic            ready,
-    output spi_mode_e       state,
-    output logic MOSI_start,
+    output logic            done
+    // output logic            ready,
+    // output spi_mode_e       state,
 
     // internal
-    output logic SCLK_RisingEdge_detect,
-    output logic SCLK_FallingEdge_detect
+    // output logic SCLK_RisingEdge_detect,
+    // output logic SCLK_FallingEdge_detect
 );
 
     logic prev_SCLK;
@@ -35,6 +33,9 @@ module SPI_Master (
     logic o_clk;
     logic tx_done;
 
+
+    spi_mode_e       state;
+    wire ready, SCLK_RisingEdge_detect, SCLK_FallingEdge_detect, MOSI_start;
 
     clock_div #(
         .FCOUNT(5)
@@ -141,7 +142,6 @@ module SPI_Master_Transceiver (
     input spi_mode_e  S_STATE,
     input logic       SCLK_RisingEdge_detect,
     input logic       SCLK_FallingEdge_detect,
-    input logic MISO_start,
 
     output logic       MOSI,
     output logic       done,
@@ -275,7 +275,7 @@ module SPI_Master_Transceiver (
                 end
             end
             WAIT: begin
-                if (MISO_start) begin
+                if (start) begin
                     rx_state_next = START;
                 end
             end

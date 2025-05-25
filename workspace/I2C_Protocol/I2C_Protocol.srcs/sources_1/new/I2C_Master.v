@@ -187,7 +187,7 @@ module I2C_Master (
                     temp_wren_next = wren;
                     count_next = 0;
                     bit_count_next = 0;
-                    sda_reg_next = (bit_count == 7) ? temp_wren : temp_addr_data[6];
+                    // sda_reg_next = (bit_count == 7) ? temp_wren : temp_addr_data[6];
                 end
             end
 
@@ -202,24 +202,22 @@ module I2C_Master (
                 else if (count == 3) begin
                     sda_reg_next = (bit_count == 6) ? temp_wren : temp_addr_data[6];
                     bit_count_next = (bit_count == 7) ? 0 : bit_count + 1;
-                    if (bit_count == 7) begin
-                        write_en_next = 1;
-                    end
+                    // if (bit_count == 7) begin
+                    //     write_en_next = 0;
+                    // end
                 end
             end
 
             READ_ACK: begin
-                write_en_next = 1;
+                temp_ack_next = SDA;
+                write_en_next = 0;
                 count_next = count + 1;
                 if (count == 0)
                     scl_reg_next = 1;
-                else if (count == 1)
-                    temp_ack_next = SDA;
                 else if (count == 2)
                     scl_reg_next = 0;
                 else if (count == 3) begin
                     write_en_next = 1;
-                    sda_reg_next = 1;
                 end
             end
 
@@ -242,6 +240,7 @@ module I2C_Master (
 
             HOLD: begin
                 write_en_next = 1;
+                sda_reg_next = 1;
                 scl_reg_next = 0;
                 count_next = count + 1;
                 if (count == 3) begin
@@ -288,8 +287,6 @@ module I2C_Master (
                     scl_reg_next = 1;
                 else if (count == 2)
                     scl_reg_next = 0;
-                else if (count == 3)
-                    sda_reg_next = 1;
             end
         endcase
     end
