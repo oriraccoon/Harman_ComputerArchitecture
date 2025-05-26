@@ -29,7 +29,6 @@ module tb_SPI_Master ();
         repeat (3);
         @(posedge clk);
 
-        repeat (5) begin
             SS = 1;
             @(posedge clk);
             tx_data = 8'b1000_0000;
@@ -41,9 +40,8 @@ module tb_SPI_Master ();
             start = 0;
             wait(done);
             @(posedge clk);
-
+        repeat (5) begin
             // write data byte on 0x01 address
-
             @(posedge clk);
             tx_data = data;
             start = 1;
@@ -53,8 +51,10 @@ module tb_SPI_Master ();
             @(posedge clk);
             start = 0;
             wait(done);
+            @(posedge clk);            
             @(posedge clk);
-
+            data = $random;
+        end
             // address byte
             SS = 1;
             @(posedge clk);
@@ -67,7 +67,7 @@ module tb_SPI_Master ();
             start = 0;
             wait(done);
             @(posedge clk);
-
+        repeat (5) begin
             @(posedge clk);
             start = 1;
             @(posedge clk);
@@ -76,12 +76,11 @@ module tb_SPI_Master ();
             @(posedge clk);
 
             // spi_item.print(uvm_default_line_printer);
-            
-            @(posedge clk);
-            tx_data = 8'b0001_0000;
-            data = data + tx_data;
         end
+            SS = 1;
 
-        #200 $finish;
+        
+
+        #2000 $finish;
     end
 endmodule

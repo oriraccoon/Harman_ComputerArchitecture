@@ -85,10 +85,10 @@ module AXI4_Lite_SLAVE (
     always_ff @(posedge ACLK) begin
         if (!ARESETn) begin
             w_state <= W_IDLE_S;
-            slv_reg0_reg <= 32'b0;
-            slv_reg1_reg <= 32'b0;
-            slv_reg2_reg <= 32'b0;
-            slv_reg3_reg <= 32'b0;
+            slv_reg0_reg <= 32'bx;
+            slv_reg1_reg <= 32'bx;
+            slv_reg2_reg <= 32'bx;
+            slv_reg3_reg <= 32'bx;
         end else begin
             w_state <= w_state_next;
             slv_reg0_reg <= slv_reg0_next;

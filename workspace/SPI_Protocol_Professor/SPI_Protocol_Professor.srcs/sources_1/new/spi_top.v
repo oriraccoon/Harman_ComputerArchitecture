@@ -97,7 +97,7 @@ module SPI_Master (
             temp_rx_data_reg <= temp_rx_data_next;
             sclk_counter_reg <= sclk_counter_next;
             bit_counter_reg  <= bit_counter_next;
-            if (rx_read && tx_data == 0) begin
+            if (rx_read) begin
                 rx_data <= temp_rx_data_reg;
             end
         end
