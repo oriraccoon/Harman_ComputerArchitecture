@@ -1,43 +1,16 @@
 `timescale 1ns / 1ps
 
-module VGA_Controller (
-    input  logic       clk,
-    input  logic       reset,
-    input  logic [3:0] control_sw,
-    input  logic [3:0] r_sw,
-    input  logic [3:0] g_sw,
-    input  logic [3:0] b_sw,
-    output logic       Hsync,
-    output logic       Vsync,
-    output logic [3:0] vgaRed,
-    output logic [3:0] vgaGreen,
-    output logic [3:0] vgaBlue
-);
-
-    logic       display_en;
-    logic [9:0] x_coor;
-    logic [8:0] y_coor;
-
-
-    VGA_DECODER U_VGA_DECODER (.*);
-
-    test_pattern_display U_SWITCH_RGB_DISPLAY (.*);
-
-endmodule
-
-
-
-module VGA_DECODER (
+module vga_Controller (
     input  logic       clk,
     input  logic       reset,
     output logic       Hsync,
     output logic       Vsync,
     output logic       display_en,
     output logic [9:0] x_coor,
-    output logic [8:0] y_coor
+    output logic [8:0] y_coor,
+    output logic pixel_clk
 );
 
-    logic pixel_clk;
     logic [9:0] h_counter, v_counter;
 
     vga_decoder U_vga_decoder (.*);
@@ -84,9 +57,9 @@ module vga_decoder (
 
         display_en = ((h_counter < H_Visible_area) && (v_counter < V_Visible_area));
 
-        x_coor = display_en ? h_counter : 10'bz;
+        x_coor = h_counter;
 
-        y_coor = display_en ? v_counter : 9'bz;
+        y_coor = v_counter;
     end
 
 endmodule
