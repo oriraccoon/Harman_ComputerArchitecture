@@ -1,0 +1,30 @@
+`timescale 1ns / 1ps
+
+
+module QVGA_MemController (
+    input  logic        clk,
+    input  logic [ 9:0] x_coor,
+    input  logic [ 8:0] y_coor,
+    input  logic        display_en,
+    input  logic        sw,
+    output logic        rclk,
+    output logic        de,
+    output logic [16:0] rAddr,
+    input  logic [15:0] rData,
+    output logic [ 3:0] vgaRed,
+    output logic [ 3:0] vgaGreen,
+    output logic [ 3:0] vgaBlue
+);
+
+    logic qvga_en;
+
+    assign qvga_en = (x_coor < 320 && y_coor < 240);
+    assign de = qvga_en;
+    assign clk = rclk;
+
+    assign rAddr = qvga_en ? (sw == 1) ? ((y_coor>>1) * 320 + (x_coor >> 1)) : (y_coor * 320 + x_coor) : 0;
+    assign {vgaRed, vgaGreen, vgaBlue} = qvga_en ?
+            {rData[15:12], rData[10:7], rData[4:1]} : 0;
+
+
+endmodule

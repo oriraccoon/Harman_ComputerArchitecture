@@ -40,6 +40,18 @@ module OV7670_VGA_Display (
         .rclk      (w_rclk)
     );
 
+    // Mem_Controller U_OV7670_MEM(
+    //     .PCLK(ov7670_pixel_clk),
+    //     .reset(reset),
+    //     .HREF(ov7670_href),
+    //     .VSYNC(ov7670_vsync),
+    //     .i_data(ov7670_data),
+    //     .wen(we),
+    //     .waddr(wAddr),
+    //     .wdata(wData)
+    // );
+
+
     OV7670_MemController U_OV7670_MEM (
         .pclk       (ov7670_pixel_clk),
         .reset      (reset),
