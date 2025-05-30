@@ -30,13 +30,13 @@ module Filter_mux (
 );
 
     always_comb begin
-        y = 12'b0;
         case (sel)
             3'd0: y = x0;
             3'd1: y = x1;
             3'd2: y = x2;
             3'd3: y = x3;
             3'd4: y = x4;
+            default: y = x0;
         endcase
     end
 endmodule
