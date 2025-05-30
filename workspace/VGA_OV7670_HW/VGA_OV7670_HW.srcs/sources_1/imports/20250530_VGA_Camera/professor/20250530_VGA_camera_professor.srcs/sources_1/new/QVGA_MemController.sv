@@ -18,7 +18,7 @@ module QVGA_MemController (
 
     logic qvga_en;
 
-    assign qvga_en = (x_coor < 320 && y_coor < 240);
+    assign qvga_en = (sw == 1) ? (x_coor < 320 && y_coor < 240) : (x_coor < 320 && y_coor < 240);
     assign de = qvga_en;
     assign clk = rclk;
 
