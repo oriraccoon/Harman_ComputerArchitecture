@@ -4,7 +4,7 @@ module Croma_Key_Filter (
 );
 
     always_comb begin : Data_Processing
-        Croma_Key_data = ((data[11:8] <= 6) && (data[7:4] >= 8) && (data[3:0] <= 6)) ? 12'hF0F : data;
+        Croma_Key_data = ((data[11:8] <= 4) && (data[7:4] >= 9) && (data[3:0] <= 4)) ? 12'hF0F : data;
     end
 
 endmodule
