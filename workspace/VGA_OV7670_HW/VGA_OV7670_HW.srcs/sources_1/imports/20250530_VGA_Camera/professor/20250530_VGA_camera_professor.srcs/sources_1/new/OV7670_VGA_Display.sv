@@ -29,12 +29,13 @@ module OV7670_VGA_Display (
     logic w_rclk, rclk;
     logic oe;
 
-    logic [11:0] G_RGB444_data;
-    logic [11:0] C_RGB444_data;
+    logic [11:0] GRAY_RGB444_data;
+    logic [11:0] BASE_RGB444_data;
     logic [11:0] O_RGB444_data;
     logic [11:0] RED_RGB444_data;
     logic [11:0] GREEN_RGB444_data;
     logic [11:0] BLUE_RGB444_data;
+    logic [11:0] CROMA_RGB444_data;
 
 
     always_comb begin
@@ -98,32 +99,41 @@ module OV7670_VGA_Display (
         .de        (oe),
         .rAddr     (rAddr),
         .rData     (rData),
-        .vgaRed    (C_RGB444_data[11:8]),
-        .vgaGreen  (C_RGB444_data[7:4]),
-        .vgaBlue   (C_RGB444_data[3:0])
+        .vgaRed    (BASE_RGB444_data[11:8]),
+        .vgaGreen  (BASE_RGB444_data[7:4]),
+        .vgaBlue   (BASE_RGB444_data[3:0])
     );
 
 
     GrayScale_Filter U_GS_F (
-        .data(C_RGB444_data),
-        .RGBdata(G_RGB444_data)
+        .data(BASE_RGB444_data),
+        .RGBdata(GRAY_RGB444_data)
     );
 
     RGBScale_Filter U_RGB_F (
-        .i_data (C_RGB444_data),
+        .i_data (BASE_RGB444_data),
         .ro_data(RED_RGB444_data),
         .go_data(GREEN_RGB444_data),
         .bo_data(BLUE_RGB444_data)
     );
 
+    Croma_Key_Filter U_CROMA_F (
+        .data(BASE_RGB444_data),
+        .Croma_Key_data(CROMA_RGB444_data)
+    );
+
+
     Filter_mux U_F_mux (
         .sel(rgb_sw[2:0]),
-        .x0 (C_RGB444_data),
-        .x1 (G_RGB444_data),
+        .x0 (BASE_RGB444_data),
+        .x1 (GRAY_RGB444_data),
         .x2 (RED_RGB444_data),
         .x3 (GREEN_RGB444_data),
         .x4 (BLUE_RGB444_data),
+        .x5 (Croma_RGB444_data),
         .y  (O_RGB444_data)
     );
+
+
 
 endmodule

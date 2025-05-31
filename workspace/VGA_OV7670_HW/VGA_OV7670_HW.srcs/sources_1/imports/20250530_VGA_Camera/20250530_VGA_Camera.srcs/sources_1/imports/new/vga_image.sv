@@ -26,6 +26,7 @@ module Filter_mux (
     input  logic [11:0] x2,
     input  logic [11:0] x3,
     input  logic [11:0] x4,
+    input  logic [11:0] x5,
     output logic [11:0] y
 );
 
@@ -36,6 +37,7 @@ module Filter_mux (
             3'd2: y = x2;
             3'd3: y = x3;
             3'd4: y = x4;
+            3'd5: y = x5;
             default: y = x0;
         endcase
     end
