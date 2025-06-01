@@ -98,7 +98,7 @@ module OV7670_VGA_Display (
         .clk       (w_rclk),
         .x_coor    (x_coor),
         .y_coor    (y_coor),
-        .sw        (VGA_SIZE),
+        .VGA_SIZE  (VGA_SIZE),
         .display_en(display_en),
         .rclk      (rclk),
         .de        (oe),
