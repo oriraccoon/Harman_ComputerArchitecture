@@ -9,3 +9,17 @@ module Croma_Key_Filter (
     end
 
 endmodule
+
+module Sobel_Filter (
+		input logic SOBEL,
+		input logic [11:0] data,
+		output logic [11:0] Sobel_data
+);
+
+		logic [11:0] processing_data;
+
+		always_comb begin
+				Sobel_data = (SOBEL==1) ? processing_data : data;
+		end
+
+endmodule
