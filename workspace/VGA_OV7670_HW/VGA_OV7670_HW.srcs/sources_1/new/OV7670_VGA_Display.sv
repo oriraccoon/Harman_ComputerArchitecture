@@ -121,11 +121,6 @@ module OV7670_VGA_Display (
         .bo_data(BLUE_RGB444_data)
     );
 
-    Croma_Key_Filter U_CROMA_F (
-        .data(BASE_RGB444_data),
-        .Croma_Key_data(CROMA_RGB444_data)
-    );
-
 
     Filter_mux U_F_mux (
         .clk(clk),
