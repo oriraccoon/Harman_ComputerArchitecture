@@ -6,6 +6,7 @@ module OV7670_VGA_Display (
     input  logic       clk,
     input  logic       reset,
     input  logic [3:0] rgb_sw,
+    input logic btn,
     // ov7670 signals
     output logic       ov7670_x_clk,
     input  logic       ov7670_pixel_clk,
@@ -26,8 +27,11 @@ module OV7670_VGA_Display (
     logic        we;
     logic [16:0] wAddr, rAddr;
     logic [15:0] wData, rData;
-    logic w_rclk, rclk;
+    logic w_rclk;
+    logic rclk = 0;
     logic oe;
+    logic VGA_SIZE;
+    logic CROMA_KEY;
 
     logic [11:0] GRAY_RGB444_data;
     logic [11:0] BASE_RGB444_data;
@@ -83,7 +87,7 @@ module OV7670_VGA_Display (
         .we   (we),
         .wAddr(wAddr),
         .wData(wData),
-        .rclk(rclk),
+        .rclk(w_rclk),
         .oe(oe),
         .rAddr(rAddr),
         .rData(rData)
@@ -93,7 +97,7 @@ module OV7670_VGA_Display (
         .clk       (w_rclk),
         .x_coor    (x_coor),
         .y_coor    (y_coor),
-        .sw        (rgb_sw[3]),
+        .sw        (VGA_SIZE),
         .display_en(display_en),
         .rclk      (rclk),
         .de        (oe),
@@ -124,16 +128,29 @@ module OV7670_VGA_Display (
 
 
     Filter_mux U_F_mux (
-        .sel(rgb_sw[2:0]),
+        .clk(clk),
+        .reset(reset),
+        .sel(rgb_sw[0]),
+        .btn(btn),
         .x0 (BASE_RGB444_data),
         .x1 (GRAY_RGB444_data),
         .x2 (RED_RGB444_data),
         .x3 (GREEN_RGB444_data),
         .x4 (BLUE_RGB444_data),
-        .x5 (Croma_RGB444_data),
-        .y  (O_RGB444_data)
+        .y  (CROMA_RGB444_data)
     );
 
+    Mode_demux U_MODE_DEMUX(
+        .sel(rgb_sw[3:1]),
+        .VGA_SIZE(VGA_SIZE),
+        .CROMA_KEY(CROMA_KEY)
+    );
+
+    Croma_Key_Filter U_Croma_Key_FILTER(
+        .CROMA_KEY(CROMA_KEY),
+        .data(CROMA_RGB444_data),
+        .Croma_Key_data(O_RGB444_data)
+    );
 
 
 endmodule

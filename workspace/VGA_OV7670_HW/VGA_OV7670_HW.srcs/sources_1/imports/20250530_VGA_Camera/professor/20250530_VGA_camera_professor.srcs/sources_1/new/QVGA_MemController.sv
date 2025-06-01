@@ -6,7 +6,7 @@ module QVGA_MemController (
     input  logic [ 9:0] x_coor,
     input  logic [ 8:0] y_coor,
     input  logic        display_en,
-    input  logic        sw,
+    input  logic        VGA_SIZE,
     output logic        rclk,
     output logic        de,
     output logic [16:0] rAddr,
@@ -18,11 +18,11 @@ module QVGA_MemController (
 
     logic qvga_en;
 
-    assign qvga_en = (sw == 1) ? (x_coor < 320 && y_coor < 240) : (x_coor < 320 && y_coor < 240);
+    assign qvga_en = (VGA_SIZE == 1) ? (x_coor < 640 && y_coor < 480) : (x_coor < 320 && y_coor < 240);
     assign de = qvga_en;
     assign clk = rclk;
 
-    assign rAddr = qvga_en ? (sw == 1) ? ((y_coor>>1) * 320 + (x_coor >> 1)) : (y_coor * 320 + x_coor) : 0;
+    assign rAddr = qvga_en ? (VGA_SIZE == 1) ? ((y_coor>>1) * 320 + (x_coor >> 1)) : (y_coor * 320 + x_coor) : 0;
     assign {vgaRed, vgaGreen, vgaBlue} = qvga_en ?
             {rData[15:12], rData[10:7], rData[4:1]} : 0;
 
