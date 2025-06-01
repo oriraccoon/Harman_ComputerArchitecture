@@ -28,11 +28,11 @@ module OV7670_VGA_Display (
     logic [16:0] wAddr, rAddr;
     logic [15:0] wData, rData;
     logic w_rclk;
-    logic rclk = 0;
+    logic rclk;
     logic oe;
     logic VGA_SIZE;
     logic CROMA_KEY;
-    logic SOBEL;
+    logic EDGE_DATA;
 
     logic [11:0] GRAY_RGB444_data;
     logic [11:0] BASE_RGB444_data;
@@ -88,7 +88,7 @@ module OV7670_VGA_Display (
         .we   (we),
         .wAddr(wAddr),
         .wData(wData),
-        .rclk(w_rclk),
+        .rclk(rclk),
         .oe(oe),
         .rAddr(rAddr),
         .rData(rData)
@@ -140,12 +140,12 @@ module OV7670_VGA_Display (
         .sel(rgb_sw[3:1]),
         .VGA_SIZE(VGA_SIZE),
         .CROMA_KEY(CROMA_KEY),
-        .SOBEL(SOBEL)
+        .EDGE_DATA(EDGE_DATA)
     );
 
     Second_Filter U_SECOND_FILTER (
         .CROMA_KEY(CROMA_KEY),
-        .SOBEL(SOBEL),
+        .EDGE_DATA(EDGE_DATA),
         .i_data(FIRST_RGB444_data),
         .o_data(O_RGB444_data)
     );

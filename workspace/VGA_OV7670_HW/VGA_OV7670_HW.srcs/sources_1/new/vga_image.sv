@@ -82,16 +82,19 @@ endmodule
 module Mode_demux (
     input logic [2:0] sel,
     output logic VGA_SIZE,
-    output logic CROMA_KEY
+    output logic CROMA_KEY,
+    output logic EDGE_DATA
 );
     
     always_comb begin
         case (sel)
             3'b001: VGA_SIZE = 1;
             3'b010: CROMA_KEY = 1;
+            3'b100: EDGE_DATA = 1;
             default: begin
                 VGA_SIZE = 0;
                 CROMA_KEY = 0;
+                EDGE_DATA = 0;
             end
         endcase
     end
