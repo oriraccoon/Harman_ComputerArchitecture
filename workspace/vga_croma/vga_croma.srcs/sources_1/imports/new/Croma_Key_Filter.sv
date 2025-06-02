@@ -1,20 +1,21 @@
 module Second_Filter(
 	input logic CROMA_KEY,
-	// input logic EDGE_DATA,
+	input logic LAPLA_DATA,
 	input logic BLUR_DATA,
+	input logic [11:0] l_data,
 	input logic [11:0] b_data,
 	input logic [11:0] i_data,
 	output logic [11:0] o_data
 );
 
 	logic [11:0] Croma_Key_data;
-	logic [11:0] edge_data;
 
 	always_comb begin
-		case ({CROMA_KEY, BLUR_DATA})
-			2'b00: o_data = i_data;
-			2'b10: o_data = Croma_Key_data;
-			2'b01: o_data = b_data;
+		case ({CROMA_KEY, BLUR_DATA, LAPLA_DATA})
+			3'b000: o_data = i_data;
+			3'b100: o_data = Croma_Key_data;
+			3'b010: o_data = b_data;
+			3'b001: o_data = l_data;
 			default: o_data = i_data;
 		endcase
 	end
@@ -42,19 +43,5 @@ module Croma_Key_Filter (
     always_comb begin : Data_Processing
         Croma_Key_data = (CROMA_KEY == 1) ? /*((data[11:8] <= 4) && (data[7:4] >= 9) && (data[3:0] <= 4))*/((data[11:8] <= 1) && (data[7:4] <= 1) && (data[3:0] <= 1)) ? 12'hF0F : data : data;
     end
-
-endmodule
-
-module EDGE_DATA_Filter (
-		input logic EDGE_DATA,
-		input logic [11:0] data,
-		output logic [11:0] edge_data
-);
-
-		logic [11:0] processing_data;
-
-		always_comb begin
-			edge_data = (EDGE_DATA==1) ? processing_data : data;
-		end
 
 endmodule

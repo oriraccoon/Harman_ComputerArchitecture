@@ -73,14 +73,15 @@ module decis_state (
 endmodule
 
 module Mode_demux (
-    input logic [2:0] sel,
+    input logic [3:0] sel,
     output logic VGA_SIZE,
     output logic CROMA_KEY,
-    output logic BLUR_DATA
+    output logic BLUR_DATA,
+    output logic LAPLA_DATA
 );
     
     always_comb begin
-        {VGA_SIZE, CROMA_KEY, BLUR_DATA} = sel;
+        {LAPLA_DATA, BLUR_DATA, CROMA_KEY, VGA_SIZE} = sel;
     end
 
 endmodule

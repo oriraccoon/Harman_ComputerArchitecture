@@ -5,7 +5,7 @@ module OV7670_VGA_Display (
     // global signals
     input  logic       clk,
     input  logic       reset,
-    input  logic [3:0] rgb_sw,
+    input  logic [4:0] rgb_sw,
     input logic btn,
     // ov7670 signals
     output logic       ov7670_x_clk,
@@ -30,10 +30,11 @@ module OV7670_VGA_Display (
     logic w_rclk;
     logic rclk;
     logic oe;
+    logic le;
     logic VGA_SIZE;
     logic CROMA_KEY;
     logic BLUR_DATA;
-    // logic EDGE_DATA;
+    logic LAPLA_DATA;
 
     logic [11:0] GRAY_RGB444_data;
     logic [3:0] GRAY_RGB444_data_4bit;
@@ -44,6 +45,7 @@ module OV7670_VGA_Display (
     logic [11:0] BLUE_RGB444_data;
     logic [11:0] FIRST_RGB444_data;
     logic [11:0] GAUSS_RGB444_data;
+    logic [11:0] LAPLA_RGB444_data;
 
 
     always_comb begin
@@ -126,7 +128,15 @@ module OV7670_VGA_Display (
         .*,
         .i_data(GRAY_RGB444_data_4bit),
         .de(oe),
+        .le(le),
         .o_data(GAUSS_RGB444_data)
+    );
+
+    Laplasian_Filter U_LAPLASIAN (
+        .*,
+        .de(le),
+        .g_data(GAUSS_RGB444_data),
+        .l_data(LAPLA_RGB444_data)
     );
 
     RGBScale_Filter U_RGB_F (
@@ -151,17 +161,18 @@ module OV7670_VGA_Display (
     );
 
     Mode_demux U_MODE_DEMUX(
-        .sel(rgb_sw[3:1]),
+        .sel(rgb_sw[4:1]),
         .VGA_SIZE(VGA_SIZE),
         .CROMA_KEY(CROMA_KEY),
-        .BLUR_DATA(BLUR_DATA)
-        // .EDGE_DATA(EDGE_DATA)
+        .BLUR_DATA(BLUR_DATA),
+        .LAPLA_DATA(LAPLA_DATA)
     );
 
     Second_Filter U_SECOND_FILTER (
         .CROMA_KEY(CROMA_KEY),
-        // .EDGE_DATA(EDGE_DATA),
+        .LAPLA_DATA(LAPLA_DATA),
         .BLUR_DATA(BLUR_DATA),
+        .l_data(LAPLA_RGB444_data),
         .b_data(GAUSS_RGB444_data),
         .i_data(FIRST_RGB444_data),
         .o_data(O_RGB444_data)
