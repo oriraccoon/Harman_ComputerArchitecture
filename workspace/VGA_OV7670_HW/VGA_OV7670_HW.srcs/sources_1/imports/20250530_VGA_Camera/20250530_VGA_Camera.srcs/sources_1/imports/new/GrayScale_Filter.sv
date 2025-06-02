@@ -10,7 +10,9 @@ module GrayScale_Filter (
     logic [3:0] G_data;
     logic [3:0] B_data;
     logic [11:0] processing_data;
-    logic [3:0] Filtered_data;
+    logic [3:0] Filtered_R_data;
+    logic [3:0] Filtered_G_data;
+    logic [3:0] Filtered_B_data;
     
 
     always_comb begin
@@ -23,11 +25,13 @@ module GrayScale_Filter (
     end
 
     always_comb begin
-        Filtered_data = processing_data[11:8];
+        Filtered_R_data = processing_data[11:8];
+        Filtered_G_data = processing_data[11:8];
+        Filtered_B_data = processing_data[11:8];
     end
 
     always_comb begin
-        RGBdata = {Filtered_data, Filtered_data, Filtered_data};
+        RGBdata = {Filtered_R_data, Filtered_G_data, Filtered_B_data};
     end
 
 endmodule

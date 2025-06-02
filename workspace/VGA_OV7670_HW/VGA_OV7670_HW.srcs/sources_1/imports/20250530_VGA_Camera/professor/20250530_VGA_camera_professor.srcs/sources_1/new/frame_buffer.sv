@@ -13,7 +13,6 @@ module frame_buffer (
     input  logic        oe,
     input  logic [16:0] rAddr,
     output logic [15:0] rData
-
 );
 
     logic [15:0] mem[0:(320*240 - 1)];
