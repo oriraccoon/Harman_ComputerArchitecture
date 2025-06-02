@@ -9,6 +9,7 @@ module mopology_top (
 );
     
     logic [11:0] w_data;
+    logic oe;
 
     mopology_erode U_ERODE (
         .*,
@@ -16,6 +17,7 @@ module mopology_top (
     );
     mopology_dilate U_DILATE (
         .*,
+        .de(oe),
         .i_data(w_data)
     );
 
@@ -31,6 +33,7 @@ module mopology_erode #(
     input logic [9:0] x_coor,
     input logic [8:0] y_coor,
     input logic de,
+    output logic oe,
     output logic [11:0] o_data
 );
 
@@ -77,12 +80,15 @@ module mopology_erode #(
     always_ff @(posedge clk) begin
         if (reset) begin
             o_data <= 0;
+            oe <= 0;
         end else if (valid_pipeline[2]) begin
+            oe <= 1;
             if (p11 & p12 & p13 & p21 & p22 & p23 & p31 & p32 & p33)
                 o_data <= 12'hFFF;
             else
                 o_data <= 12'h000;
         end else begin
+            oe <= 0;
             o_data <= 0;
         end
     end
