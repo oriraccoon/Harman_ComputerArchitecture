@@ -22,7 +22,7 @@ module QVGA_MemController (
     assign de = qvga_en;
     assign clk = rclk;
 
-    assign rAddr = qvga_en ? ((VGA_SIZE == 1) ? ((y_coor>>1) * 320 + (x_coor >> 1)) : (y_coor * 320 + x_coor)) : 0;
+    assign rAddr = qvga_en ? (VGA_SIZE == 1) ? ((y_coor>>1) * 320 + (x_coor >> 1)) : (y_coor * 320 + x_coor) : 0;
     assign {vgaRed, vgaGreen, vgaBlue} = qvga_en ?
             {rData[15:12], rData[10:7], rData[4:1]} : 0;
 

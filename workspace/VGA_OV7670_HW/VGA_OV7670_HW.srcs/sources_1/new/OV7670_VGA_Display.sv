@@ -6,6 +6,7 @@ module OV7670_VGA_Display (
     input  logic       clk,
     input  logic       reset,
     input  logic [3:0] rgb_sw,
+    input logic btn,
     // ov7670 signals
     output logic       ov7670_x_clk,
     input  logic       ov7670_pixel_clk,
@@ -26,15 +27,20 @@ module OV7670_VGA_Display (
     logic        we;
     logic [16:0] wAddr, rAddr;
     logic [15:0] wData, rData;
-    logic w_rclk, rclk;
+    logic w_rclk;
+    logic rclk;
     logic oe;
+    logic VGA_SIZE;
+    logic CROMA_KEY;
+    logic EDGE_DATA;
 
-    logic [11:0] G_RGB444_data;
-    logic [11:0] C_RGB444_data;
+    logic [11:0] GRAY_RGB444_data;
+    logic [11:0] BASE_RGB444_data;
     logic [11:0] O_RGB444_data;
     logic [11:0] RED_RGB444_data;
     logic [11:0] GREEN_RGB444_data;
     logic [11:0] BLUE_RGB444_data;
+    logic [11:0] FIRST_RGB444_data;
 
 
     always_comb begin
@@ -92,38 +98,57 @@ module OV7670_VGA_Display (
         .clk       (w_rclk),
         .x_coor    (x_coor),
         .y_coor    (y_coor),
-        .VGA_SIZE  (rgb_sw[3]),
+        .VGA_SIZE  (VGA_SIZE),
         .display_en(display_en),
         .rclk      (rclk),
         .de        (oe),
         .rAddr     (rAddr),
         .rData     (rData),
-        .vgaRed    (C_RGB444_data[11:8]),
-        .vgaGreen  (C_RGB444_data[7:4]),
-        .vgaBlue   (C_RGB444_data[3:0])
+        .vgaRed    (BASE_RGB444_data[11:8]),
+        .vgaGreen  (BASE_RGB444_data[7:4]),
+        .vgaBlue   (BASE_RGB444_data[3:0])
     );
 
 
     GrayScale_Filter U_GS_F (
-        .data(C_RGB444_data),
-        .RGBdata(G_RGB444_data)
+        .data(BASE_RGB444_data),
+        .RGBdata(GRAY_RGB444_data)
     );
 
     RGBScale_Filter U_RGB_F (
-        .i_data (C_RGB444_data),
+        .i_data (BASE_RGB444_data),
         .ro_data(RED_RGB444_data),
         .go_data(GREEN_RGB444_data),
         .bo_data(BLUE_RGB444_data)
     );
 
+
     Filter_mux U_F_mux (
-        .sel(rgb_sw[2:0]),
-        .x0 (C_RGB444_data),
-        .x1 (G_RGB444_data),
+        .clk(clk),
+        .reset(reset),
+        .sel(rgb_sw[0]),
+        .btn(btn),
+        .x0 (BASE_RGB444_data),
+        .x1 (GRAY_RGB444_data),
         .x2 (RED_RGB444_data),
         .x3 (GREEN_RGB444_data),
         .x4 (BLUE_RGB444_data),
-        .y  (O_RGB444_data)
+        .y  (FIRST_RGB444_data)
     );
+
+    Mode_demux U_MODE_DEMUX(
+        .sel(rgb_sw[3:1]),
+        .VGA_SIZE(VGA_SIZE),
+        .CROMA_KEY(CROMA_KEY),
+        .EDGE_DATA(EDGE_DATA)
+    );
+
+    Second_Filter U_SECOND_FILTER (
+        .CROMA_KEY(CROMA_KEY),
+        .EDGE_DATA(EDGE_DATA),
+        .i_data(FIRST_RGB444_data),
+        .o_data(O_RGB444_data)
+    );
+
 
 endmodule
