@@ -1087,8 +1087,8 @@ OV7670_Init(&hi2c1);
  80009a6:	f7ff fdad 	bl	8000504 <OV7670_Init>
 OV7670_ResetSW();
  80009aa:	f7ff fdf9 	bl	80005a0 <OV7670_ResetSW>
-OV7670_SetResolution(QVGA);
- 80009ae:	2001      	movs	r0, #1
+OV7670_SetResolution(QQVGA);
+ 80009ae:	2002      	movs	r0, #2
  80009b0:	f7ff fe4e 	bl	8000650 <OV7670_SetResolution>
 OV7670_SetColorFormat(RGB565);
  80009b4:	2001      	movs	r0, #1

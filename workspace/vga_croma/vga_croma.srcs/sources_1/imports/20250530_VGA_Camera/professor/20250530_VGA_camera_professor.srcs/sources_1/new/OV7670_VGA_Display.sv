@@ -1,0 +1,171 @@
+`timescale 1ns / 1ps
+
+
+module OV7670_VGA_Display (
+    // global signals
+    input  logic       clk,
+    input  logic       reset,
+    input  logic [3:0] rgb_sw,
+    input logic btn,
+    // ov7670 signals
+    output logic       ov7670_x_clk,
+    input  logic       ov7670_pixel_clk,
+    input  logic       ov7670_href,
+    input  logic       ov7670_vsync,
+    input  logic [7:0] ov7670_data,
+    // export signals
+    output logic       Hsync,
+    output logic       Vsync,
+    output logic [3:0] vgaRed,
+    output logic [3:0] vgaGreen,
+    output logic [3:0] vgaBlue
+);
+
+    logic        display_en;
+    logic [9:0]  x_coor;
+    logic [8:0]  y_coor;
+    logic        we;
+    logic [16:0] wAddr, rAddr;
+    logic [15:0] wData, rData;
+    logic w_rclk;
+    logic rclk;
+    logic oe;
+    logic VGA_SIZE;
+    logic CROMA_KEY;
+    logic BLUR_DATA;
+    // logic EDGE_DATA;
+
+    logic [11:0] GRAY_RGB444_data;
+    logic [3:0] GRAY_RGB444_data_4bit;
+    logic [11:0] BASE_RGB444_data;
+    logic [11:0] O_RGB444_data;
+    logic [11:0] RED_RGB444_data;
+    logic [11:0] GREEN_RGB444_data;
+    logic [11:0] BLUE_RGB444_data;
+    logic [11:0] FIRST_RGB444_data;
+    logic [11:0] GAUSS_RGB444_data;
+
+
+    always_comb begin
+        {vgaRed, vgaGreen, vgaBlue} = O_RGB444_data;
+    end
+
+
+    vga_Controller U_VGA_CONTROLLER (
+        .clk       (clk),
+        .reset     (reset),
+        .Hsync     (Hsync),
+        .Vsync     (Vsync),
+        .display_en(display_en),
+        .x_coor    (x_coor),
+        .y_coor    (y_coor),
+        .pixel_clk (ov7670_x_clk),
+        .rclk      (w_rclk)
+    );
+
+    Mem_Controller U_OV7670_MEM(
+        .PCLK(ov7670_pixel_clk),
+        .reset(reset),
+        .HREF(ov7670_href),
+        .VSYNC(ov7670_vsync),
+        .i_data(ov7670_data),
+        .wen(we),
+        .waddr(wAddr),
+        .wdata(wData)
+    );
+
+    // OV7670_MemController U_OV7670_MEM(
+    //     .pclk(ov7670_pixel_clk),
+    //     .reset(reset),
+    //     .href(ov7670_href),
+    //     .vsync(ov7670_vsync),
+    //     .ov7670_data(ov7670_data),
+    //     .we(we),
+    //     .wAddr(wAddr),
+    //     .wData(wData)
+    // );
+
+
+    frame_buffer U_FRAME_BUFF (
+        .wclk (ov7670_pixel_clk),
+        .we   (we),
+        .wAddr(wAddr),
+        .wData(wData),
+        .rclk(rclk),
+        .oe(oe),
+        .rAddr(rAddr),
+        .rData(rData)
+    );
+
+    QVGA_MemController U_QVGA_MEM (
+        .clk       (w_rclk),
+        .x_coor    (x_coor),
+        .y_coor    (y_coor),
+        .VGA_SIZE  (VGA_SIZE),
+        .display_en(display_en),
+        .rclk      (rclk),
+        .de        (oe),
+        .rAddr     (rAddr),
+        .rData     (rData),
+        .vgaRed    (BASE_RGB444_data[11:8]),
+        .vgaGreen  (BASE_RGB444_data[7:4]),
+        .vgaBlue   (BASE_RGB444_data[3:0])
+    );
+
+
+    GrayScale_Filter U_GS_F (
+        .data(BASE_RGB444_data),
+        .RGBdata(GRAY_RGB444_data)
+    );
+    GrayScale_Filter_4bit U_GS_F_4bit (
+        .data(BASE_RGB444_data),
+        .RGBdata(GRAY_RGB444_data_4bit)
+    );
+
+    Gaussian_Blur U_GAUSS (
+        .*,
+        .i_data(GRAY_RGB444_data_4bit),
+        .de(oe),
+        .o_data(GAUSS_RGB444_data)
+    );
+
+    RGBScale_Filter U_RGB_F (
+        .i_data (BASE_RGB444_data),
+        .ro_data(RED_RGB444_data),
+        .go_data(GREEN_RGB444_data),
+        .bo_data(BLUE_RGB444_data)
+    );
+
+
+    Filter_mux U_F_mux (
+        .clk(clk),
+        .reset(reset),
+        .sel(rgb_sw[0]),
+        .btn(btn),
+        .x0 (BASE_RGB444_data),
+        .x1 (GRAY_RGB444_data),
+        .x2 (RED_RGB444_data),
+        .x3 (GREEN_RGB444_data),
+        .x4 (BLUE_RGB444_data),
+        .y  (FIRST_RGB444_data)
+    );
+
+    Mode_demux U_MODE_DEMUX(
+        .sel(rgb_sw[3:1]),
+        .VGA_SIZE(VGA_SIZE),
+        .CROMA_KEY(CROMA_KEY),
+        .BLUR_DATA(BLUR_DATA)
+        // .EDGE_DATA(EDGE_DATA)
+    );
+
+    Second_Filter U_SECOND_FILTER (
+        .CROMA_KEY(CROMA_KEY),
+        // .EDGE_DATA(EDGE_DATA),
+        .BLUR_DATA(BLUR_DATA),
+        .b_data(GAUSS_RGB444_data),
+        .i_data(FIRST_RGB444_data),
+        .o_data(O_RGB444_data)
+    );
+
+
+endmodule
