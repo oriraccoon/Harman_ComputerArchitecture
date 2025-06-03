@@ -45,6 +45,7 @@ module hough_vote_calculator #(
     // Rho 계산 결과 (고정 소수점)
     logic signed [(XY_WIDTH + COS_SIN_WIDTH)-1:0] rho_intermediate;
     logic signed [RHO_ACCUM_WIDTH + FIXED_POINT_SHIFT -1 : 0] rho_scaled; // x*cos + y*sin (스케일링됨)
+                logic signed [RHO_ACCUM_WIDTH + FIXED_POINT_SHIFT -1 : 0] rho_to_round;
     logic signed [RHO_ACCUM_WIDTH-1:0] rho_final_index; // 최종 누적 배열 인덱스 (정수)
 
     // Theta 인덱스 카운터
@@ -122,7 +123,6 @@ module hough_vote_calculator #(
 
                 // 스케일 다운 (오른쪽 시프트) 및 반올림(옵션, 여기선 단순 절삭)
                 // rho_final_index_temp의 부호도 고려해야 함
-                logic signed [RHO_ACCUM_WIDTH + FIXED_POINT_SHIFT -1 : 0] rho_to_round;
                 rho_to_round = rho_scaled;
                 if (FIXED_POINT_SHIFT > 0) begin
                     // 간단한 반올림: (val + (1 << (SHIFT-1))) >> SHIFT
