@@ -190,14 +190,12 @@ module OV7670_VGA_Display (
         .Croma_Key_data(CROMA_RGB444_data)
     );
 
-    mopology_top U_MOPOL (
-        .*,
+    mopology_Filter U_MOPOL (
         .i_data(GAUSS_GRAY444_data),
-        .de(le),
-        .me(me),
-        .o_data(MOPOL_RGB444_data)
+        .de(le),             
+        .oe(me),            
+        .o_data(MOPOL_RGB444_data)  
     );
-
     Filter_mux U_S_mux (
         .clk(clk),
         .reset(reset),
@@ -216,15 +214,15 @@ module OV7670_VGA_Display (
 
     Laplasian_Filter U_LAPLA(
         .*,
-        .de(me),
-        .g_data(MOPOL_RGB444_data),
+        .de(le),
+        .g_data(GAUSS_GRAY444_data),
         .l_data(LAPLA_RGB444_data)
     );
 
     Sobel_Filter U_SOBEL(
         .*,
-        .gray_in(MOPOL_RGB444_data),
-        .de(me),
+        .gray_in(GAUSS_GRAY444_data),
+        .de(le),
         .sobel_out(SOBEL_RGB444_data),
         .scharr_out(SCHARR_RGB444_data)
     );
