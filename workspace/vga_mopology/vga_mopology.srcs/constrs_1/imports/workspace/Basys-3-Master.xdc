@@ -13,7 +13,7 @@ set_property -dict { PACKAGE_PIN V17   IOSTANDARD LVCMOS33 } [get_ports {rgb_sw[
 set_property -dict { PACKAGE_PIN V16   IOSTANDARD LVCMOS33 } [get_ports {rgb_sw[1]}]
 set_property -dict { PACKAGE_PIN W16   IOSTANDARD LVCMOS33 } [get_ports {rgb_sw[2]}]
 set_property -dict { PACKAGE_PIN W17   IOSTANDARD LVCMOS33 } [get_ports {rgb_sw[3]}]
-set_property -dict { PACKAGE_PIN W15   IOSTANDARD LVCMOS33 } [get_ports {rgb_sw[4]}]
+# set_property -dict { PACKAGE_PIN W15   IOSTANDARD LVCMOS33 } [get_ports {rgb_sw[4]}]
 # set_property -dict { PACKAGE_PIN V15   IOSTANDARD LVCMOS33 } [get_ports {g_sw[5]}]
 # set_property -dict { PACKAGE_PIN W14   IOSTANDARD LVCMOS33 } [get_ports {g_sw[6]}]
 # set_property -dict { PACKAGE_PIN W13   IOSTANDARD LVCMOS33 } [get_ports {g_sw[7]}]
@@ -24,7 +24,7 @@ set_property -dict { PACKAGE_PIN W15   IOSTANDARD LVCMOS33 } [get_ports {rgb_sw[
 # set_property -dict { PACKAGE_PIN W2    IOSTANDARD LVCMOS33 } [get_ports {control_sw[12]}]
 # set_property -dict { PACKAGE_PIN U1    IOSTANDARD LVCMOS33 } [get_ports {control_sw[13]}]
 # set_property -dict { PACKAGE_PIN T1    IOSTANDARD LVCMOS33 } [get_ports {control_sw[14]}]
-# set_property -dict { PACKAGE_PIN R2    IOSTANDARD LVCMOS33 } [get_ports {control_sw[15]}]
+# set_property -dict { PACKAGE_PIN R2    IOSTANDARD LVCMOS33 } [get_ports {sel}]
 
 
 ## LEDs
@@ -65,9 +65,10 @@ set_property -dict { PACKAGE_PIN W15   IOSTANDARD LVCMOS33 } [get_ports {rgb_sw[
 
 ##Buttons
 set_property -dict { PACKAGE_PIN U18   IOSTANDARD LVCMOS33 } [get_ports reset]
-set_property -dict { PACKAGE_PIN T18   IOSTANDARD LVCMOS33 } [get_ports btn]
-#set_property -dict { PACKAGE_PIN W19   IOSTANDARD LVCMOS33 } [get_ports btnL]
-#set_property -dict { PACKAGE_PIN T17   IOSTANDARD LVCMOS33 } [get_ports btnR]
+set_property CLOCK_DEDICATED_ROUTE FALSE [get_nets reset]
+# set_property -dict { PACKAGE_PIN T18   IOSTANDARD LVCMOS33 } [get_ports btn[0]]
+set_property -dict { PACKAGE_PIN W19   IOSTANDARD LVCMOS33 } [get_ports btn[1]]
+set_property -dict { PACKAGE_PIN T17   IOSTANDARD LVCMOS33 } [get_ports btn[0]]
 #set_property -dict { PACKAGE_PIN U17   IOSTANDARD LVCMOS33 } [get_ports btnD]
 
 
