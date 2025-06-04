@@ -33,7 +33,6 @@ module OV7670_VGA_Display (
     logic rclk;
     logic oe;
     logic le;
-    logic me;
     logic VGA_SIZE;
 
     logic [11:0] GRAY_RGB444_data;
@@ -50,8 +49,6 @@ module OV7670_VGA_Display (
     logic [11:0] LAPLA_RGB444_data;
     logic [11:0] SOBEL_RGB444_data;
     logic [11:0] SCHARR_RGB444_data;
-    logic [11:0] MOPOL_RGB444_data;
-    
 
 
     always_comb begin
@@ -190,14 +187,6 @@ module OV7670_VGA_Display (
         .Croma_Key_data(CROMA_RGB444_data)
     );
 
-    Mopology_Filter U_MOPOL(
-        .*,
-        .i_data(GAUSS_GRAY444_data),
-        .de(le),             
-        .oe(me),            
-        .o_data(MOPOL_RGB444_data)  
-    );
-
     Filter_mux U_S_mux (
         .clk(clk),
         .reset(reset),
@@ -205,8 +194,8 @@ module OV7670_VGA_Display (
         .btn(btn),
         .x0 (FIRST_RGB444_data),
         .x1 (CROMA_RGB444_data),
-        .x2 (GAUSS_GRAY444_data),
-        .x3 (MOPOL_RGB444_data),
+        .x2 (CROMA_RGB444_data),
+        .x3 (GAUSS_GRAY444_data),
         .x4 (FIRST_RGB444_data),
         .y  (SECOND_RGB444_data)
     );
@@ -216,15 +205,15 @@ module OV7670_VGA_Display (
 
     Laplasian_Filter U_LAPLA(
         .*,
-        .de(me),
-        .g_data(SECOND_RGB444_data),
+        .de(le),
+        .g_data(GAUSS_GRAY444_data),
         .l_data(LAPLA_RGB444_data)
     );
 
     Sobel_Filter U_SOBEL(
         .*,
-        .gray_in(SECOND_RGB444_data),
-        .de(me),
+        .gray_in(GAUSS_GRAY444_data),
+        .de(le),
         .sobel_out(SOBEL_RGB444_data),
         .scharr_out(SCHARR_RGB444_data)
     );
@@ -238,7 +227,7 @@ module OV7670_VGA_Display (
         .x1 (LAPLA_RGB444_data),
         .x2 (SOBEL_RGB444_data),
         .x3 (SCHARR_RGB444_data),
-        .x4 ( SECOND_RGB444_data ),
+        .x4 ((SECOND_RGB444_data - LAPLA_RGB444_data)),
         .y  (O_RGB444_data)
     );
 

@@ -1,4 +1,4 @@
-module mopology_opening #(
+module Mopology_Filter #(
     parameter IMG_WIDTH = 640
 )(
     input logic clk,
