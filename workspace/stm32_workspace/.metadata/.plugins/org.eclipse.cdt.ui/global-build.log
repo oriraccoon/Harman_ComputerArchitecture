@@ -96,3 +96,10 @@ arm-none-eabi-size  20250530_OV7670.elf
   11768	     16	   1664	  13448	   3488	20250530_OV7670.elf
 Finished building: default.size.stdout
  
+09:29:58 **** Incremental Build of configuration Debug for project 20250530_OV7670 ****
+make -j16 all 
+arm-none-eabi-size  20250530_OV7670.elf 
+   text	   data	    bss	    dec	    hex	filename
+  11768	     16	   1664	  13448	   3488	20250530_OV7670.elf
+Finished building: default.size.stdout
+ 
