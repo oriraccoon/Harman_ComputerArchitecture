@@ -3,6 +3,8 @@ module Gaussian_Blur (
     input logic reset,
     input logic [9:0] x_coor,
     input logic [8:0] y_coor,
+    input logic C_up_btn, 
+    input logic C_down_btn, 
     input logic [3:0] i_data,
     input logic de,
     output logic le,
@@ -14,6 +16,7 @@ module Gaussian_Blur (
     logic [3:0] line_buff1 [0:IMG_WIDTH-1];
     logic [3:0] line_buff2 [0:IMG_WIDTH-1];
     logic [2:0] pipe_valid;
+    logic [11:0] CONTRAST_RGB444_data;
 
     logic [3:0] gauss_window [0:2][0:2];
 
@@ -22,13 +25,27 @@ module Gaussian_Blur (
     integer i;
 
     localparam integer GAUSS_WINDOW [0:2][0:2] = 
-        '{  '{1, 2, 1},
-            '{2, 4, 2},
-            '{1, 2, 1}
+        '{  '{0, 1, 0},
+            '{1, 2, 1},
+            '{0, 1, 0}
         };
 
-    assign o_data = {sum[3:0], sum[3:0], sum[3:0]};
+    assign o_data = CONTRAST_RGB444_data;
     assign le = pipe_valid[2];
+
+    Contrast U_CONT(
+        .clk(clk),
+        .reset(reset),
+        .up_btn(C_up_btn),
+        .down_btn(C_down_btn),
+        .x_pixel(x_coor),
+        .y_pixel(y_coor),
+        .rgb({sum[3:0], sum[3:0], sum[3:0]}),
+        .red_port(CONTRAST_RGB444_data[11:8]),
+        .green_port(CONTRAST_RGB444_data[7:4]),
+        .blue_port(CONTRAST_RGB444_data[3:0])
+    );
+
 
     always_ff @( posedge clk or posedge reset ) begin : line_pipe
         if (reset) begin
@@ -88,7 +105,7 @@ module Gaussian_Blur (
                         (gauss_window[1][0] << GAUSS_WINDOW[1][0]) +
                         (gauss_window[2][2] << GAUSS_WINDOW[2][2]) +
                         (gauss_window[2][1] << GAUSS_WINDOW[2][1]) +
-                        (gauss_window[2][0] << GAUSS_WINDOW[2][0])) >> 5;
+                        (gauss_window[2][0] << GAUSS_WINDOW[2][0])) >> 4;
             end
         end
     end

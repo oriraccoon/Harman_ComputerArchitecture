@@ -8,9 +8,11 @@ module Sobel_Filter #(
     input  logic [8:0] y_coor,
     input  logic       de,
     output logic [11:0] sobel_out,
-    output logic [11:0] scharr_out
+    output logic [11:0] scharr_out,
+    output logic [11:0] s_sobel, s_scharr
 );
     localparam IMG_WIDTH = 640;
+
 
     logic [3:0] line_buffer_1[0:IMG_WIDTH-1];
     logic [3:0] line_buffer_2[0:IMG_WIDTH-1];
@@ -25,8 +27,15 @@ module Sobel_Filter #(
     logic signed [11:0] c_gx, c_gy;
     logic [10:0] mag;
     logic [11:0] c_mag;
+    logic [3:0] cliping_sum, c_cliping_sum;
 
     integer i;
+
+    assign cliping_sum = (mag >> 3);
+    assign c_cliping_sum = (c_mag >> 5);
+    assign s_sobel = {cliping_sum, cliping_sum, cliping_sum};
+    assign s_scharr = {c_cliping_sum, c_cliping_sum, c_cliping_sum};
+
 
     always @(posedge clk or posedge reset) begin
         if (reset) begin

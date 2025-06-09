@@ -23,13 +23,12 @@
 module ISP(
     input logic i_clk,
     input logic reset,
-    input logic [9:0]  x_coor,
-    input logic [8:0]  y_coor,
     input logic [4:0] rgb_sw,
-    input logic bg_sw,
     input logic [1:0] btn,
-    input logic up_btn,
-    input logic down_btn,
+    input logic [9:0] x_coor,
+    input logic [8:0] y_coor,
+    input logic C_up_btn,
+    input logic C_down_btn,
     input logic oe,
     input logic [11:0] BASE_RGB444_data,
     output logic [11:0] O_RGB444_data
@@ -47,11 +46,16 @@ module ISP(
     logic [11:0] CROMA_RGB444_data;
     logic [11:0] GAUSS_GRAY444_data;
     logic [11:0] LAPLA_RGB444_data;
+    logic [11:0] L_SHARP_RGB444_data;
+    logic [11:0] L_SHARPNESS_RGB444_data;
+    logic [11:0] S_SHARP_RGB444_data;
+    logic [11:0] S_SHARPNESS_RGB444_data;
+    logic [11:0] C_SHARP_RGB444_data;
+    logic [11:0] C_SHARPNESS_RGB444_data;
     logic [11:0] SOBEL_RGB444_data;
     logic [11:0] SCHARR_RGB444_data;
     logic [11:0] MOPOL_RGB444_data;
     logic [11:0] EDGE_MOPOL_RGB444_data;
-    logic [11:0] GAMMA_RGB444_data;
 
 
     bit le;
@@ -88,10 +92,6 @@ module ISP(
         .data(BASE_RGB444_data),
         .RGBdata(GRAY_RGB444_data)
     );
-    GrayScale_Filter_4bit U_GS_F_4bit (
-        .data(BASE_RGB444_data),
-        .RGBdata(GRAY_RGB444_data_4bit)
-    );
 
     RGBScale_Filter U_RGB_F (
         .i_data (BASE_RGB444_data),
@@ -119,11 +119,12 @@ module ISP(
 
     Gaussian_Blur U_GAUSS_GRAY (
         .*,
-        .i_data(GRAY_RGB444_data_4bit),
+        .i_data(GRAY_RGB444_data[3:0]),
         .de(oe),
         .le(le),
         .o_data(GAUSS_GRAY444_data)
-    );  
+    );
+    
     
     Croma_Key_Filter U_CROMA (
         .data(FIRST_RGB444_data),
@@ -133,8 +134,8 @@ module ISP(
     Mopology_Filter U_MOPOL_BERFORE_EDGE (
         .*,
         .i_data(GAUSS_GRAY444_data),
-        .de(le),             
-        .oe(me),            
+        .DE(le),             
+        .moe(me),            
         .o_data(MOPOL_RGB444_data)  
     );
 
@@ -154,12 +155,15 @@ module ISP(
     // ---------------- third filter -----------------------------
     // -------------Laplasian, Sobel, Scharr filter --------------
 
+
+
     Laplasian_Filter U_LAPLA(
         .*,
         .de(me),
         .laen(laen),
         .g_data(SECOND_RGB444_data),
-        .l_data(LAPLA_RGB444_data)
+        .l_data(LAPLA_RGB444_data),
+        .ls_data(L_SHARP_RGB444_data)
     );
 
     Sobel_Filter U_SOBEL(
@@ -167,7 +171,9 @@ module ISP(
         .gray_in(SECOND_RGB444_data),
         .de(me),
         .sobel_out(SOBEL_RGB444_data),
-        .scharr_out(SCHARR_RGB444_data)
+        .scharr_out(SCHARR_RGB444_data),
+        .s_sobel(S_SHARP_RGB444_data),
+        .s_scharr(C_SHARP_RGB444_data)
     );
 
 
@@ -180,17 +186,32 @@ module ISP(
         .x1 (LAPLA_RGB444_data),
         .x2 (SOBEL_RGB444_data),
         .x3 (SCHARR_RGB444_data),
-        .x4 ( SECOND_RGB444_data ),
+        .x4 (L_SHARP_RGB444_data),
         .y  (THIRD_RGB444_data)
     );
-
 
     Mopology_Filter U_MOPOL_AFTER_EDGE (
         .*,
         .i_data(THIRD_RGB444_data),
-        .de(laen),             
-        .oe(ame),            
+        .DE(le),             
+        .moe(),             
         .o_data(EDGE_MOPOL_RGB444_data)  
+    );
+
+    Sharpness_Filter U_LAPLA_SHARP(
+        .BASE_RGB444_data(BASE_RGB444_data),
+        .FILTERED_RGB444_data(L_SHARP_RGB444_data),
+        .SHARPNESS_RGB444_data(L_SHARPNESS_RGB444_data)
+    );
+    Sharpness_Filter U_SOBEL_SHARP(
+        .BASE_RGB444_data(BASE_RGB444_data),
+        .FILTERED_RGB444_data(S_SHARP_RGB444_data),
+        .SHARPNESS_RGB444_data(S_SHARPNESS_RGB444_data)
+    );
+    Sharpness_Filter U_SCHARR_SHARP(
+        .BASE_RGB444_data(BASE_RGB444_data),
+        .FILTERED_RGB444_data(C_SHARP_RGB444_data),
+        .SHARPNESS_RGB444_data(C_SHARPNESS_RGB444_data)
     );
 
     Filter_mux U_after_edge_mux (
@@ -200,9 +221,14 @@ module ISP(
         .btn(btn),
         .x0 (THIRD_RGB444_data),
         .x1 (EDGE_MOPOL_RGB444_data),
-        .x2 (EDGE_MOPOL_RGB444_data),
-        .x3 (EDGE_MOPOL_RGB444_data),
-        .x4 ( EDGE_MOPOL_RGB444_data ),
+        .x2 (L_SHARPNESS_RGB444_data),
+        .x3 (S_SHARPNESS_RGB444_data),
+        .x4 (C_SHARPNESS_RGB444_data),
         .y  (O_RGB444_data)
     );
+
+
+
+
+
 endmodule

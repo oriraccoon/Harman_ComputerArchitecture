@@ -14,6 +14,8 @@ module frame_buffer (
     output logic [11:0] rData
 );
     logic [11:0] mem[0 : (320 * 240 - 1)];
+    // logic [11:0] idata;
+    // assign idata = {wData[15:12], wData[10:7], wData[4:1]};
 
     // write side 
     always_ff @(posedge wclk) begin

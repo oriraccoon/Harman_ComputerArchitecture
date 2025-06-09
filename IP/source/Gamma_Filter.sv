@@ -1,11 +1,9 @@
 module Gamma_Filter (
     input  logic        clk,
     input  logic        reset,
-    input  logic        en,
     input  logic        up_btn,
     input  logic        down_btn,
     input  logic [11:0] rgb_in,
-    output logic ge,
     output logic [11:0] rgb_out
 );
 
@@ -96,43 +94,37 @@ module Gamma_Filter (
 
 
     always_ff @(posedge clk) begin
-        if (en) begin
-            ge <= 1'b1;
-            if (r_up_btn) begin
-                case (state)
-                    G1_0: begin
-                        state <= G1_8;
-                    end
-                    G1_8: begin
-                        state <= G2_2;
-                    end
-                    G2_2: begin
-                        state <= G0_5;
-                    end
-                    G0_5: begin
-                        state <= G1_0;
-                    end
-                endcase
-            end
-            if (r_down_btn) begin
-                case (state)
-                    G1_0: begin
-                        state <= G0_5;
-                    end
-                    G1_8: begin
-                        state <= G1_0;
-                    end
-                    G2_2: begin
-                        state <= G1_8;
-                    end
-                    G0_5: begin
-                        state <= G2_2;
-                    end
-                endcase
-            end
+        if (r_up_btn) begin
+            case (state)
+                G1_0: begin
+                    state <= G1_8;
+                end
+                G1_8: begin
+                    state <= G2_2;
+                end
+                G2_2: begin
+                    state <= G0_5;
+                end
+                G0_5: begin
+                    state <= G1_0;
+                end
+            endcase
         end
-        else begin
-            ge <= 1'b0;
+        if (r_down_btn) begin
+            case (state)
+                G1_0: begin
+                    state <= G0_5;
+                end
+                G1_8: begin
+                    state <= G1_0;
+                end
+                G2_2: begin
+                    state <= G1_8;
+                end
+                G0_5: begin
+                    state <= G2_2;
+                end
+            endcase
         end
     end
 

@@ -8,7 +8,8 @@ module Laplasian_Filter #(
     input logic [9:0] x_coor,
     input logic [8:0] y_coor,
     input logic [11:0] g_data,
-    output logic [11:0] l_data
+    output logic [11:0] l_data,
+    output logic [11:0] ls_data
 );
 
     localparam IMG_WIDTH = 640;
@@ -33,7 +34,8 @@ module Laplasian_Filter #(
     
     assign abs_sum = (Laplacian_sum < 0) ? -Laplacian_sum : Laplacian_sum;
     assign cliping_sum = (abs_sum >> 3);
-    assign l_data = (cliping_sum > THRESHOLD) ? 12'hFFF : 12'h0;
+    assign l_data = {(cliping_sum > THRESHOLD) ? 12'hFFF : 12'h0};
+    assign ls_data = {cliping_sum, cliping_sum, cliping_sum};
     assign laen = pipe_valid[2];
 
     always_ff @( posedge clk or posedge reset ) begin : line_pipe
